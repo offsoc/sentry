@@ -1,3 +1,4 @@
+import type {Feature} from 'sentry/types/features';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import type {
   DatasetSource,
@@ -21,7 +22,7 @@ export interface OrganizationSummary {
   avatar: Avatar;
   codecovAccess: boolean;
   dateCreated: string;
-  features: string[];
+  features: Feature[];
   githubNudgeInvite: boolean;
   githubOpenPRBot: boolean;
   githubPRBot: boolean;
