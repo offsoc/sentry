@@ -158,6 +158,33 @@ def dump(flags: int, only_set: bool, pretty_print: bool) -> None:
                     )
 
 
+@config.command()
+@configuration
+def typegen() -> None:
+    """
+    Generate type definitions for all options except for those flagged as credential.
+    """
+    import re
+
+    from sentry.features import default_manager
+
+    outputFile = "static/app/types/features.tsx"
+    text = ""
+    features = [re.sub(r"^[^:]*:", "", opt) for opt in default_manager.all(api_expose_only=True)]
+    with open(outputFile) as file:
+        text = file.read()
+
+    with open(outputFile, "w") as file:
+        value = "\n".join([f'  | "{feature}"' for feature in sorted(features)])
+        file.write(
+            re.sub(
+                r"(?<=/\* typegen:start \*\/)([\s\S]*)(?=/\* typegen:end \*\/)",
+                f"\n{value};\n  ",
+                text,
+            )
+        )
+
+
 @config.command(name="generate-secret-key")
 def generate_secret_key() -> None:
     "Generate a new cryptographically secure secret key value."
