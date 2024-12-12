@@ -14,6 +14,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
+import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
 import {traceAnalytics} from '../traceAnalytics';
 import type {TraceTree} from '../traceModels/traceTree';
@@ -33,7 +34,8 @@ function filterProjects(projects: Project[], tree: TraceTree) {
   const projectsWithOnboardingChecklist: Project[] = [];
 
   for (const project of projects) {
-    if (tree.project_ids.has(Number(project.id))) {
+    const hasProject = tree.projects.has(Number(project.id));
+    if (hasProject) {
       if (!project.firstTransactionEvent) {
         projectsWithNoPerformance.push(project);
         if (project.platform && withPerformanceOnboarding.has(project.platform)) {
@@ -139,6 +141,7 @@ type Subscription = {
   planDetails: {
     billingInterval: 'monthly' | 'annual';
   };
+  planTier: string;
   onDemandBudgets?: {
     enabled: boolean;
   };
@@ -191,7 +194,9 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
 
   const title = tct("You've exceeded your [billingType]", {
     billingType: subscription?.onDemandBudgets?.enabled
-      ? t('pay-as-you-go budget')
+      ? ['am1', 'am2'].includes(subscription.planTier)
+        ? t('on-demand budget')
+        : t('pay-as-you-go budget')
       : t('quota'),
   });
 
@@ -223,13 +228,15 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
           props.tree.shape
         );
         browserHistory.push({
-          pathname: `/settings/billing/checkout/`,
+          pathname: `/settings/billing/checkout/?referrer=trace-view`,
           query: {
             skipBundles: true,
           },
         });
       }}
-      docsRoute="https://docs.sentry.io/pricing/quotas/"
+      docsRoute={getDocsLinkForEventType(
+        dataCategories && 'spans' in dataCategories ? 'span' : 'transaction'
+      )}
       primaryButtonText={ctaText}
     />
   );

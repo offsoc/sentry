@@ -35,7 +35,6 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {SearchWrapper} from 'sentry/views/settings/components/defaultSearchBar';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import InviteBanner from 'sentry/views/settings/organizationMembers/inviteBanner';
 
@@ -312,7 +311,7 @@ function OrganizationMembersList() {
           refetchInviteRequests();
           refetchMembers();
         }}
-        allowedRoles={currentMember ? currentMember.roles : ORG_ROLES}
+        allowedRoles={currentMember?.orgRoleList ?? currentMember?.roles ?? ORG_ROLES}
       />
       {inviteRequests.length > 0 && (
         <Panel>
@@ -330,7 +329,7 @@ function OrganizationMembersList() {
                 organization={organization}
                 inviteRequest={inviteRequest}
                 inviteRequestBusy={{}}
-                allRoles={currentMember?.roles ?? ORG_ROLES}
+                allRoles={currentMember?.orgRoleList ?? currentMember?.roles ?? ORG_ROLES}
                 onApprove={handleInviteRequestApprove}
                 onDeny={handleInviteRequestDeny}
                 onUpdate={data => updateInviteRequest(inviteRequest.id, data)}
@@ -341,7 +340,7 @@ function OrganizationMembersList() {
       )}
       <SearchWrapperWithFilter>
         <MembersFilter
-          roles={currentMember?.roles ?? ORG_ROLES}
+          roles={currentMember?.orgRoleList ?? currentMember?.roles ?? ORG_ROLES}
           query={searchQuery}
           onChange={handleQueryChange}
         />
@@ -393,10 +392,12 @@ function OrganizationMembersList() {
   );
 }
 
-const SearchWrapperWithFilter = styled(SearchWrapper)`
+const SearchWrapperWithFilter = styled('div')`
+  position: relative;
   display: grid;
   grid-template-columns: max-content 1fr;
-  margin-top: 0;
+  gap: ${space(1.5)};
+  margin-bottom: ${space(1.5)};
 `;
 
 const StyledPanelItem = styled('div')`

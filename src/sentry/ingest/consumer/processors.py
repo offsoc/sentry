@@ -1,5 +1,6 @@
 import functools
 import logging
+import os
 from collections.abc import Mapping, MutableMapping
 from typing import Any
 
@@ -12,8 +13,9 @@ from usageaccountant import UsageUnit
 from sentry import eventstore, features
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.event_manager import EventManager, save_attachment
-from sentry.eventstore.processing import event_processing_store
+from sentry.eventstore.processing import event_processing_store, transaction_processing_store
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, is_in_feedback_denylist
+from sentry.ingest.types import ConsumerType
 from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
@@ -23,6 +25,7 @@ from sentry.usage_accountant import record
 from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.dates import to_datetime
+from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
 from sentry.utils.sdk import set_current_event_project
 from sentry.utils.snuba import RateLimitExceeded
 
@@ -41,10 +44,19 @@ def trace_func(**span_kwargs):
     def wrapper(f):
         @functools.wraps(f)
         def inner(*args, **kwargs):
+            # First we check a local env var
+            # if that's not set we check our conf file
+            # if neither are set use 0
+            sample_rate = float(
+                os.getenv(
+                    "SENTRY_INGEST_CONSUMER_APM_SAMPLING",
+                    default=getattr(settings, "SENTRY_INGEST_CONSUMER_APM_SAMPLING", 0),
+                )
+            )
             # New behavior is to add a custom `sample_rate` that is picked up by `traces_sampler`
             span_kwargs.setdefault(
                 "custom_sampling_context",
-                {"sample_rate": getattr(settings, "SENTRY_INGEST_CONSUMER_APM_SAMPLING", 0)},
+                {"sample_rate": sample_rate},
             )
             with sentry_sdk.start_transaction(**span_kwargs):
                 return f(*args, **kwargs)
@@ -73,13 +85,14 @@ def process_transaction_no_celery(
         data = dict(data.items())
 
     with sentry_sdk.start_span(op="event_processing_store.store"):
-        cache_key = event_processing_store.store(data)
+        cache_key = transaction_processing_store.store(data)
     save_attachments(attachments, cache_key)
 
 
 @trace_func(name="ingest_consumer.process_event")
 @metrics.wraps("ingest_consumer.process_event")
 def process_event(
+    consumer_type: str,
     message: IngestMessage,
     project: Project,
     reprocess_only_stuck_events: bool = False,
@@ -97,9 +110,6 @@ def process_event(
 
     sentry_sdk.set_extra("event_id", event_id)
     sentry_sdk.set_extra("len_attachments", len(attachments))
-
-    if project_id == settings.SENTRY_PROJECT:
-        metrics.incr("internal.captured.ingest_consumer.unparsed")
 
     # check that we haven't already processed this event (a previous instance of the forwarder
     # died before it could commit the event queue offset)
@@ -152,13 +162,14 @@ def process_event(
     with sentry_sdk.start_span(op="orjson.loads"):
         data = orjson.loads(payload)
 
-    sentry_sdk.set_extra("event_type", data.get("type"))
+    # We also need to check "type" as transactions are also sent to ingest-attachments
+    # along with other event types if they have attachments.
+    if consumer_type == ConsumerType.Transactions or data.get("type") == "transaction":
+        processing_store = transaction_processing_store
+    else:
+        processing_store = event_processing_store
 
-    if project_id == settings.SENTRY_PROJECT:
-        metrics.incr(
-            "internal.captured.ingest_consumer.parsed",
-            tags={"event_type": data.get("type") or "null"},
-        )
+    sentry_sdk.set_extra("event_type", data.get("type"))
 
     with sentry_sdk.start_span(
         op="killswitch_matches_context", name="store.load-shed-parsed-pipeline-projects"
@@ -183,7 +194,7 @@ def process_event(
         # process and consume the event from the `processing_store`, whereby getting it "unstuck".
         if reprocess_only_stuck_events:
             with sentry_sdk.start_span(op="event_processing_store.exists"):
-                if not event_processing_store.exists(data):
+                if not processing_store.exists(data):
                     return
 
         # The no_celery_mode version of the transactions consumer skips one trip to rc-processing
@@ -193,7 +204,12 @@ def process_event(
             cache_key = None
         else:
             with metrics.timer("ingest_consumer._store_event"):
-                cache_key = event_processing_store.store(data)
+                cache_key = processing_store.store(data)
+            if consumer_type == ConsumerType.Transactions:
+                track_sampled_event(
+                    data["event_id"], ConsumerType.Transactions, TransactionStageStatus.REDIS_PUT
+                )
+
             save_attachments(attachments, cache_key)
 
         try:

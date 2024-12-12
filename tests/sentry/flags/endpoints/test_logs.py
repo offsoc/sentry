@@ -16,7 +16,7 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
 
     @property
     def features(self):
-        return {"organizations:feature-flag-ui": True}
+        return {}
 
     def test_get(self):
         model = FlagAuditLogModel(
@@ -37,9 +37,9 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
             result = response.json()
             assert len(result["data"]) == 1
             assert result["data"][0]["action"] == "created"
-            assert "created_at" in result["data"][0]
-            assert result["data"][0]["created_by"] == "a@b.com"
-            assert result["data"][0]["created_by_type"] == "email"
+            assert "createdAt" in result["data"][0]
+            assert result["data"][0]["createdBy"] == "a@b.com"
+            assert result["data"][0]["createdByType"] == "email"
             assert result["data"][0]["flag"] == "hello"
             assert result["data"][0]["tags"] == {"commit_sha": "123"}
 
@@ -79,10 +79,6 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
         with self.feature(self.features):
             response = self.client.get(url)
             assert response.status_code == 403
-
-    # def test_get_feature_disabled(self):
-    #     response = self.client.get(self.url)
-    #     assert response.status_code == 404
 
     def test_get_stats_period(self):
         model = FlagAuditLogModel(
@@ -145,7 +141,7 @@ class OrganizationFlagLogDetailsEndpointTestCase(APITestCase):
 
     @property
     def features(self):
-        return {"organizations:feature-flag-ui": True}
+        return {}
 
     def test_get(self):
         with self.feature(self.features):
@@ -154,9 +150,9 @@ class OrganizationFlagLogDetailsEndpointTestCase(APITestCase):
 
             result = response.json()
             assert result["data"]["action"] == "created"
-            assert "created_at" in result["data"]
-            assert result["data"]["created_by"] == "a@b.com"
-            assert result["data"]["created_by_type"] == "email"
+            assert "createdAt" in result["data"]
+            assert result["data"]["createdBy"] == "a@b.com"
+            assert result["data"]["createdByType"] == "email"
             assert result["data"]["flag"] == "hello"
             assert result["data"]["tags"] == {"commit_sha": "123"}
 
@@ -172,7 +168,3 @@ class OrganizationFlagLogDetailsEndpointTestCase(APITestCase):
         with self.feature(self.features):
             response = self.client.get(reverse(self.endpoint, args=(self.organization.id, 123)))
             assert response.status_code == 404
-
-    # def test_get_feature_disabled(self):
-    #     response = self.client.get(self.url)
-    #     assert response.status_code == 404

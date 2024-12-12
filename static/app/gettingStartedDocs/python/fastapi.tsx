@@ -13,6 +13,7 @@ import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoa
 import {
   AlternativeConfiguration,
   crashReportOnboardingPython,
+  featureFlagOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
@@ -34,7 +35,7 @@ sentry_sdk.init(
         : ''
     }${
       params.isProfilingSelected &&
-      params.profilingOptions?.defaultProfilingMode === 'transaction'
+      params.profilingOptions?.defaultProfilingMode !== 'continuous'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
@@ -169,6 +170,7 @@ const docs: Docs = {
     installSnippet: getInstallSnippet(),
   }),
   crashReportOnboarding: crashReportOnboardingPython,
+  featureFlagOnboarding: featureFlagOnboarding,
 };
 
 export default docs;

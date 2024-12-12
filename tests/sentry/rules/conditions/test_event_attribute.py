@@ -1,9 +1,12 @@
 from unittest.mock import patch
 
-from sentry.rules.conditions.event_attribute import EventAttributeCondition
+import pytest
+
+from sentry.rules.conditions.event_attribute import EventAttributeCondition, attribute_registry
 from sentry.rules.match import MatchType
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.skips import requires_snuba
+from sentry.utils.registry import NoRegistrationExistsError
 
 pytestmark = [requires_snuba]
 
@@ -61,12 +64,7 @@ class EventAttributeConditionTest(RuleTestCase):
                 "unreal": {
                     "crash_type": "crash",
                 },
-                "os": {
-                    "distribution": {
-                        "name": "ubuntu",
-                        "version": "22.04",
-                    }
-                },
+                "os": {"distribution_name": "ubuntu", "distribution_version": "22.04"},
             },
             "threads": {
                 "values": [
@@ -84,6 +82,16 @@ class EventAttributeConditionTest(RuleTestCase):
     def test_render_label(self):
         rule = self.get_rule(data={"match": MatchType.EQUAL, "attribute": "\xc3", "value": "\xc4"})
         assert rule.render_label() == "The event's \xc3 value equals \xc4"
+
+    def test_not_in_registry(self):
+        with pytest.raises(NoRegistrationExistsError):
+            attribute_registry.get("transaction")
+
+        event = self.get_event()
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "transaction", "value": "asdf"}
+        )
+        self.assertDoesNotPass(rule, event)
 
     def test_equals(self):
         event = self.get_event()
@@ -477,6 +485,26 @@ class EventAttributeConditionTest(RuleTestCase):
         )
         self.assertDoesNotPass(rule, event)
 
+    def test_stacktrace_attributeerror(self):
+        event = self.get_event(
+            exception={
+                "values": [
+                    {
+                        "type": "SyntaxError",
+                        "value": "hello world",
+                    }
+                ]
+            }
+        )
+        # hack to trigger attributeerror
+        event.interfaces["exception"]._data["values"][0] = None
+
+        for value in ["example.php", "somecode.php", "othercode.php"]:
+            rule = self.get_rule(
+                data={"match": MatchType.EQUAL, "attribute": "stacktrace.filename", "value": value}
+            )
+            self.assertDoesNotPass(rule, event)
+
     def test_stacktrace_module(self):
         """Stacktrace.module should match frames anywhere in the stack."""
 
@@ -791,24 +819,21 @@ class EventAttributeConditionTest(RuleTestCase):
         )
         self.assertDoesNotPass(rule, event)
 
-    def test_os_distribution_only(self):
-        event = self.get_event()
-        rule = self.get_rule(
-            data={"match": MatchType.EQUAL, "attribute": "os.distribution", "value": "irrelevant"}
-        )
-        self.assertDoesNotPass(rule, event)
-
     def test_os_distribution_name_and_version(self):
         event = self.get_event()
         rule = self.get_rule(
-            data={"match": MatchType.EQUAL, "attribute": "os.distribution.name", "value": "ubuntu"}
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "os.distribution_name",
+                "value": "ubuntu",
+            }
         )
         self.assertPasses(rule, event)
 
         rule = self.get_rule(
             data={
                 "match": MatchType.EQUAL,
-                "attribute": "os.distribution.version",
+                "attribute": "os.distribution_version",
                 "value": "22.04",
             }
         )
@@ -817,7 +842,7 @@ class EventAttributeConditionTest(RuleTestCase):
         rule = self.get_rule(
             data={
                 "match": MatchType.EQUAL,
-                "attribute": "os.distribution.name",
+                "attribute": "os.distribution_name",
                 "value": "slackware",
             }
         )
@@ -826,7 +851,7 @@ class EventAttributeConditionTest(RuleTestCase):
         rule = self.get_rule(
             data={
                 "match": MatchType.EQUAL,
-                "attribute": "os.distribution.version",
+                "attribute": "os.distribution_version",
                 "value": "20.04",
             }
         )

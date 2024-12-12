@@ -305,12 +305,10 @@ class BaseEvent(metaclass=abc.ABCMeta):
         return get_interfaces(self.data)
 
     @overload
-    def get_interface(self, name: Literal["user"]) -> User:
-        ...
+    def get_interface(self, name: Literal["user"]) -> User: ...
 
     @overload
-    def get_interface(self, name: str) -> Interface | None:
-        ...
+    def get_interface(self, name: str) -> Interface | None: ...
 
     def get_interface(self, name: str) -> Interface | None:
         return self.interfaces.get(name)
@@ -573,6 +571,11 @@ class Event(BaseEvent):
         state.pop("_group_cache", None)
         state.pop("_groups_cache", None)
         return state
+
+    def __repr__(self):
+        return "<sentry.eventstore.models.Event at 0x{:x}: event_id={}>".format(
+            id(self), self.event_id
+        )
 
     @property
     def data(self) -> NodeData:

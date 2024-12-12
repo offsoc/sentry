@@ -15,6 +15,7 @@ import {
   type AutofixRootCauseCodeContext,
   type AutofixRootCauseData,
   type AutofixRootCauseSelection,
+  AutofixStatus,
   AutofixStepType,
   type CodeSnippetContext,
 } from 'sentry/components/events/autofix/types';
@@ -42,6 +43,7 @@ type AutofixRootCauseProps = {
   repos: AutofixRepository[];
   rootCauseSelection: AutofixRootCauseSelection;
   runId: string;
+  terminationReason?: string;
 };
 
 const contentAnimationProps: AnimationProps = {
@@ -100,7 +102,7 @@ export function useSelectCause({groupId, runId}: {groupId: string; runId: string
             ...data,
             autofix: {
               ...data.autofix,
-              status: 'PROCESSING',
+              status: AutofixStatus.PROCESSING,
               steps: data.autofix.steps?.map(step => {
                 if (step.type !== AutofixStepType.ROOT_CAUSE_ANALYSIS) {
                   return step;
@@ -223,11 +225,12 @@ function RootCauseContext({
           )}
         </ExpandableInsightContext>
       )}
-      {cause.code_context.length > 0 && (
+      {cause?.code_context && cause.code_context.length > 0 && (
         <ExpandableInsightContext
           icon={<IconCode size="sm" color="subText" />}
           title={'Relevant code'}
           rounded
+          expandByDefault
         >
           <AutofixRootCauseCodeContexts codeContext={cause.code_context} repos={repos} />
         </ExpandableInsightContext>
@@ -277,7 +280,11 @@ export function SuggestedFixSnippet({
     if (!repo) {
       return undefined;
     }
-    return `${repo.url}/blob/${repo.default_branch}/${snippet.file_path}`;
+    return `${repo.url}/blob/${repo.default_branch}/${snippet.file_path}${
+      snippet.start_line && snippet.end_line
+        ? `#L${snippet.start_line}-L${snippet.end_line}`
+        : ''
+    }`;
   }
   const extension = getFileExtension(snippet.file_path);
   const language = extension ? getPrismLanguage(extension) : undefined;
@@ -296,7 +303,7 @@ export function SuggestedFixSnippet({
       </StyledCodeSnippet>
       {sourceLink && (
         <CodeLinkWrapper>
-          <Tooltip title={t('Open this file in GitHub')} skipWrapper>
+          <Tooltip title={t('Open in GitHub')} skipWrapper>
             <OpenInLink href={sourceLink} openInNewTab aria-label={t('GitHub')}>
               <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
             </OpenInLink>
@@ -474,9 +481,7 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
         <AnimationWrapper key="card" {...cardAnimationProps}>
           <NoCausesPadding>
             <Alert type="warning">
-              {t(
-                'No root cause found. Maybe help Autofix rethink by editing an insight above?'
-              )}
+              {t('No root cause found.\n\n%s', props.terminationReason ?? '')}
             </Alert>
           </NoCausesPadding>
         </AnimationWrapper>

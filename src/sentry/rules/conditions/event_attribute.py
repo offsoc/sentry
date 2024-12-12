@@ -15,7 +15,7 @@ from sentry.rules.history.preview_strategy import DATASET_TO_COLUMN_NAME, get_da
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.types.condition_activity import ConditionActivity
-from sentry.utils.registry import Registry
+from sentry.utils.registry import NoRegistrationExistsError, Registry
 
 
 @dataclass(frozen=True)
@@ -63,8 +63,8 @@ ATTR_CHOICES = {
     "stacktrace.package": Columns.STACK_PACKAGE,
     "unreal.crashtype": Columns.UNREAL_CRASH_TYPE,
     "app.in_foreground": Columns.APP_IN_FOREGROUND,
-    "os.distribution.name": Columns.OS_DISTRIBUTION_NAME,
-    "os.distribution.version": Columns.OS_DISTRIBUTION_VERSION,
+    "os.distribution_name": Columns.OS_DISTRIBUTION_NAME,
+    "os.distribution_version": Columns.OS_DISTRIBUTION_VERSION,
 }
 
 
@@ -141,7 +141,11 @@ class EventAttributeCondition(EventCondition):
         path = attr.split(".")
 
         first_attr = path[0]
-        attr_handler = attribute_registry.get(first_attr)
+        try:
+            attr_handler = attribute_registry.get(first_attr)
+        except NoRegistrationExistsError:
+            attr_handler = None
+
         if not attr_handler:
             attribute_values = []
         else:
@@ -251,11 +255,16 @@ class ExceptionAttributeHandler(AttributeHandler):
         if path[1] not in ("type", "value"):
             return []
 
-        return [
-            getattr(e, path[1])
-            for e in getattr(event.interfaces.get("exception"), "values", [])
-            if e is not None
-        ]
+        values = getattr(event.interfaces.get("exception"), "values", [])
+        result = []
+        for e in values:
+            if e is None:
+                continue
+
+            if hasattr(e, path[1]):
+                result.append(getattr(e, path[1]))
+
+        return result
 
 
 @attribute_registry.register("error")
@@ -288,7 +297,8 @@ class UserAttributeHandler(AttributeHandler):
         if path[1] not in ("id", "ip_address", "email", "username"):
             return []
 
-        return [getattr(event.interfaces.get("user", {}), path[1])]
+        result = getattr(event.interfaces.get("user", {}), path[1], None)
+        return [result] if result is not None else []
 
 
 @attribute_registry.register("http")
@@ -298,7 +308,8 @@ class HttpAttributeHandler(AttributeHandler):
     @classmethod
     def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
         if path[1] in ("url", "method"):
-            return [getattr(event.interfaces["request"], path[1])]
+            result = getattr(event.interfaces.get("request"), path[1], None)
+            return [result] if result is not None else []
         elif path[1] in ("status_code"):
             contexts = event.data.get("contexts", {})
             response = contexts.get("response")
@@ -333,13 +344,15 @@ class StacktraceAttributeHandler(AttributeHandler):
             stacks = [
                 getattr(e, "stacktrace")
                 for e in getattr(event.interfaces.get("exception"), "values", [])
-                if getattr(e, "stacktrace")
+                if getattr(e, "stacktrace", None)
             ]
         result = []
         for st in stacks:
             for frame in st.frames:
                 if path[1] in ("filename", "module", "abs_path", "package"):
-                    result.append(getattr(frame, path[1]))
+                    value = getattr(frame, path[1], None)
+                    if value is not None:
+                        result.append(value)
                 elif path[1] == "code":
                     if frame.pre_context:
                         result.extend(frame.pre_context)
@@ -405,21 +418,14 @@ class AppAttributeHandler(AttributeHandler):
 
 @attribute_registry.register("os")
 class OsAttributeHandler(AttributeHandler):
-    minimum_path_length = 3
+    minimum_path_length = 2
 
     @classmethod
     def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
-        if path[1] in ("distribution"):
-            if path[2] in ("name", "version"):
-                contexts = event.data.get("contexts", {})
-                os_context = contexts.get("os")
-                if os_context is None:
-                    os_context = {}
-
-                distribution = os_context.get(path[1])
-                if distribution is None:
-                    distribution = {}
-
-                return [distribution.get(path[2])]
-            return []
+        if path[1] in ("distribution_name", "distribution_version"):
+            contexts = event.data.get("contexts", {})
+            os_context = contexts.get("os")
+            if os_context is None:
+                os_context = {}
+            return [os_context.get(path[1])]
         return []

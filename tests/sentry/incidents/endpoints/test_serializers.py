@@ -120,7 +120,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             "organization": self.organization,
             "access": self.access,
             "user": self.user,
-            "installations": app_service.get_installed_for_organization(
+            "installations": app_service.installations_for_organization(
                 organization_id=self.organization.id
             ),
             "integrations": integration_service.get_integrations(
@@ -727,8 +727,9 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert alert_rule.team_id is None
 
     def test_invalid_detection_type(self):
-        with self.feature("organizations:anomaly-detection-alerts"), self.feature(
-            "organizations:anomaly-detection-rollout"
+        with (
+            self.feature("organizations:anomaly-detection-alerts"),
+            self.feature("organizations:anomaly-detection-rollout"),
         ):
             params = self.valid_params.copy()
             params["detection_type"] = AlertRuleDetectionType.PERCENT  # requires comparison delta
@@ -872,7 +873,6 @@ class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
             "threshold_type": 0,
             "resolve_threshold": 1,
             "alert_threshold": 0,
-            "excluded_projects": [self.project.slug],
             "actions": [{"type": "email", "targetType": "team", "targetIdentifier": self.team.id}],
         }
 

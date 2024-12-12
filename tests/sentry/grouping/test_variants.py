@@ -1,62 +1,23 @@
 from __future__ import annotations
 
-from os import path
-from typing import Any
+from typing import cast
 
-import orjson
 import pytest
 
 from sentry.eventstore.models import Event
-from sentry.grouping.component import GroupingComponent
+from sentry.grouping.fingerprinting import FingerprintRuleJSON
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
-from sentry.grouping.variants import BaseVariant
+from sentry.grouping.variants import CustomFingerprintVariant, expose_fingerprint_dict
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
-from tests.sentry.grouping import GROUPING_INPUTS_DIR, GroupingInput, with_grouping_inputs
-
-
-def to_json(value: Any) -> str:
-    return orjson.dumps(value, option=orjson.OPT_SORT_KEYS).decode()
-
-
-def dump_variant(
-    variant: BaseVariant, lines: list[str] | None = None, indent: int = 0
-) -> list[str]:
-    if lines is None:
-        lines = []
-
-    def _dump_component(component: GroupingComponent, indent: int) -> None:
-        if not component.hint and not component.values:
-            return
-        lines.append(
-            "%s%s%s%s"
-            % (
-                "  " * indent,
-                component.id,
-                component.contributes and "*" or "",
-                component.hint and " (%s)" % component.hint or "",
-            )
-        )
-        for value in component.values:
-            if isinstance(value, GroupingComponent):
-                _dump_component(value, indent + 1)
-            else:
-                lines.append("{}{}".format("  " * (indent + 1), to_json(value)))
-
-    lines.append("{}hash: {}".format("  " * indent, to_json(variant.get_hash())))
-
-    for key, value in sorted(variant.__dict__.items()):
-        if isinstance(value, GroupingComponent):
-            lines.append("{}{}:".format("  " * indent, key))
-            _dump_component(value, indent + 1)
-        elif key == "config":
-            # We do not want to dump the config
-            continue
-        else:
-            lines.append("{}{}: {}".format("  " * indent, key, to_json(value)))
-
-    return lines
+from tests.sentry.grouping import (
+    GROUPING_INPUTS_DIR,
+    GroupingInput,
+    dump_variant,
+    get_snapshot_path,
+    with_grouping_inputs,
+)
 
 
 @with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
@@ -136,12 +97,32 @@ def _assert_and_snapshot_results(
         output,
         # Manually set the snapshot path so that both of the tests above will file their snapshots
         # in the same spot
-        reference_file=path.join(
-            path.dirname(__file__),
-            "snapshots",
-            path.basename(__file__).replace(".py", ""),
-            "test_event_hash_variant",
-            config_name.replace("-", "_").replace(":", "@"),
-            input_file.replace("-", "_").replace(".json", ".pysnap"),
+        reference_file=get_snapshot_path(
+            __file__, input_file, "test_event_hash_variant", config_name
         ),
     )
+
+
+# TODO: This can be deleted after Jan 2025, when affected events have aged out
+def test_old_event_with_no_fingerprint_rule_text():
+    variant = CustomFingerprintVariant(
+        ["dogs are great"],
+        {
+            # Cast here to compensate for missing `text` entry. (This allows us to avoid creating
+            # another place we have to remember to update when this temporary test (and the
+            # temporary fix it tests) is removed.)
+            "matched_rule": cast(
+                FingerprintRuleJSON,
+                {
+                    "attributes": {},
+                    "fingerprint": ["dogs are great"],
+                    "matchers": [["message", "*dogs*"]],
+                    # newer events have a `text` entry here
+                },
+            )
+        },
+    )
+    assert expose_fingerprint_dict(variant.values, variant.info) == {
+        "values": ["dogs are great"],
+        "matched_rule": 'message:"*dogs*" -> "dogs are great"',
+    }

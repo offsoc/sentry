@@ -10,12 +10,16 @@ from django.test import override_settings
 from django.urls import reverse
 from requests.exceptions import Timeout
 
-from sentry import audit_log, nodestore
+from sentry import audit_log
 from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import SentryAppStatus
+from sentry.eventstore.models import GroupEvent
+from sentry.eventstream.types import EventStreamEventType
 from sentry.integrations.models.utils import get_redis_key
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
+from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.rule import Rule
@@ -27,6 +31,7 @@ from sentry.sentry_apps.tasks.sentry_apps import (
     notify_sentry_app,
     process_resource_change_bound,
     send_alert_event,
+    send_alert_webhook,
     send_webhooks,
     workflow_notification,
 )
@@ -46,6 +51,7 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
 
@@ -92,7 +98,7 @@ MockResponseInstance = MockResponse({}, {}, "", True, 200, raiseStatusFalse, Non
 MockResponse404 = MockResponse({}, {}, "", False, 404, raiseException, None)
 
 
-class TestSendAlertEvent(TestCase):
+class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
     def setUp(self):
         self.sentry_app = self.create_sentry_app(organization=self.organization)
         self.rule = Rule.objects.create(project=self.project, label="Issa Rule")
@@ -103,17 +109,36 @@ class TestSendAlertEvent(TestCase):
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     def test_no_sentry_app(self, safe_urlopen):
         event = self.store_event(data={}, project_id=self.project.id)
-        send_alert_event(event, self.rule, 9999)
+        assert event.group is not None
+        group_event = GroupEvent.from_event(event, event.group)
+        send_alert_event(group_event, self.rule, 9999)
+
+        assert not safe_urlopen.called
+
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    def test_no_sentry_app_for_send_alert_event_v2(self, safe_urlopen):
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+        group_event = GroupEvent.from_event(event, event.group)
+        send_alert_webhook(
+            instance_id=group_event.event_id,
+            group_id=group_event.group_id,
+            occurrence_id=None,
+            rule=self.rule,
+            sentry_app_id=9999,
+        )
 
         assert not safe_urlopen.called
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     def test_no_sentry_app_in_future(self, safe_urlopen):
         event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+        group_event = GroupEvent.from_event(event, event.group)
         rule_future = RuleFuture(rule=self.rule, kwargs={})
 
         with self.tasks():
-            notify_sentry_app(event, [rule_future])
+            notify_sentry_app(group_event, [rule_future])
 
         assert not safe_urlopen.called
 
@@ -121,10 +146,12 @@ class TestSendAlertEvent(TestCase):
     def test_no_installation(self, safe_urlopen):
         sentry_app = self.create_sentry_app(organization=self.organization)
         event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+        group_event = GroupEvent.from_event(event, event.group)
         rule_future = RuleFuture(rule=self.rule, kwargs={"sentry_app": sentry_app})
 
         with self.tasks():
-            notify_sentry_app(event, [rule_future])
+            notify_sentry_app(group_event, [rule_future])
 
         assert not safe_urlopen.called
 
@@ -133,14 +160,14 @@ class TestSendAlertEvent(TestCase):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
         group = event.group
+        group_event = GroupEvent.from_event(event, group)
         rule_future = RuleFuture(rule=self.rule, kwargs={"sentry_app": self.sentry_app})
 
         with self.tasks():
-            notify_sentry_app(event, [rule_future])
+            notify_sentry_app(group_event, [rule_future])
 
         ((args, kwargs),) = safe_urlopen.call_args_list
         data = json.loads(kwargs["data"])
-
         assert data == {
             "action": "triggered",
             "installation": {"uuid": self.install.uuid},
@@ -150,17 +177,18 @@ class TestSendAlertEvent(TestCase):
             },
             "actor": {"type": "application", "id": "sentry", "name": "Sentry"},
         }
-        assert data["data"]["event"]["event_id"] == event.event_id
+        assert data["data"]["event"]["project"] == self.project.id
+        assert data["data"]["event"]["event_id"] == group_event.event_id
         assert data["data"]["event"]["url"] == absolute_uri(
             reverse(
                 "sentry-api-0-project-event-details",
-                args=[self.organization.slug, self.project.slug, event.event_id],
+                args=[self.organization.slug, self.project.slug, group_event.event_id],
             )
         )
         assert data["data"]["event"]["web_url"] == absolute_uri(
             reverse(
                 "sentry-organization-event-detail",
-                args=[self.organization.slug, group.id, event.event_id],
+                args=[self.organization.slug, group.id, group_event.event_id],
             )
         )
         assert data["data"]["event"]["issue_url"] == absolute_uri(f"/api/0/issues/{group.id}/")
@@ -184,6 +212,9 @@ class TestSendAlertEvent(TestCase):
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     def test_send_alert_event_with_additional_payload(self, safe_urlopen):
         event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+
+        group_event = GroupEvent.from_event(event, event.group)
         settings = [
             {"name": "alert_prefix", "value": "[Not Good]"},
             {"name": "channel", "value": "#ignored-errors"},
@@ -198,7 +229,7 @@ class TestSendAlertEvent(TestCase):
         )
 
         with self.tasks():
-            notify_sentry_app(event, [rule_future])
+            notify_sentry_app(group_event, [rule_future])
 
         ((args, kwargs),) = safe_urlopen.call_args_list
         payload = json.loads(kwargs["data"])
@@ -210,6 +241,70 @@ class TestSendAlertEvent(TestCase):
             "title": self.rule.label,
             "sentry_app_id": self.sentry_app.id,
             "settings": settings,
+        }
+
+        buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
+        requests = buffer.get_requests()
+
+        assert len(requests) == 1
+        assert requests[0]["response_code"] == 200
+        assert requests[0]["event_type"] == "event_alert.triggered"
+
+    @override_options({"sentryapps.send_alert_event.use-eventid": 1.0})
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
+    def test_send_alert_event_with_groupevent(self, safe_urlopen):
+        event = self.store_event(data={}, project_id=self.project.id)
+        occurrence_data = self.build_occurrence_data(
+            event_id=event.event_id, project_id=self.project.id
+        )
+        occurrence, group_info = save_issue_occurrence(occurrence_data=occurrence_data, event=event)
+        assert group_info is not None
+
+        group_event = event.for_group(group_info.group)
+        group_event.occurrence = occurrence
+        rule_future = RuleFuture(rule=self.rule, kwargs={"sentry_app": self.sentry_app})
+
+        with self.tasks():
+            notify_sentry_app(group_event, [rule_future])
+
+        ((args, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+        assert data == {
+            "action": "triggered",
+            "installation": {"uuid": self.install.uuid},
+            "data": {
+                "event": ANY,  # tested below
+                "triggered_rule": self.rule.label,
+            },
+            "actor": {"type": "application", "id": "sentry", "name": "Sentry"},
+        }
+        assert data["data"]["event"]["project"] == self.project.id
+        assert data["data"]["event"]["event_id"] == group_event.event_id
+        assert data["data"]["event"]["url"] == absolute_uri(
+            reverse(
+                "sentry-api-0-project-event-details",
+                args=[self.organization.slug, self.project.slug, group_event.event_id],
+            )
+        )
+        assert data["data"]["event"]["web_url"] == absolute_uri(
+            reverse(
+                "sentry-organization-event-detail",
+                args=[self.organization.slug, group_event.group.id, group_event.event_id],
+            )
+        )
+        assert data["data"]["event"]["issue_url"] == absolute_uri(
+            f"/api/0/issues/{group_event.group.id}/"
+        )
+        assert data["data"]["event"]["issue_id"] == str(group_event.group.id)
+        assert data["data"]["event"]["occurrence"] == convert_dict_key_case(
+            group_event.occurrence.to_dict(), snake_to_camel_case
+        )
+        assert kwargs["headers"].keys() >= {
+            "Content-Type",
+            "Request-ID",
+            "Sentry-Hook-Resource",
+            "Sentry-Hook-Timestamp",
+            "Sentry-Hook-Signature",
         }
 
         buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
@@ -242,6 +337,7 @@ class TestProcessResourceChange(TestCase):
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
                 project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
             )
 
         ((args, kwargs),) = safe_urlopen.call_args_list
@@ -305,10 +401,7 @@ class TestProcessResourceChange(TestCase):
             assert_no_errors=False,
         )
 
-        with self.tasks(), patch(
-            "sentry.sentry_apps.tasks.sentry_apps.nodestore.backend.get",
-            wraps=nodestore.backend.get,
-        ) as nodestore_get:
+        with self.tasks():
             post_process_group(
                 is_new=False,
                 is_regression=False,
@@ -316,60 +409,8 @@ class TestProcessResourceChange(TestCase):
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
                 project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
             )
-            assert not nodestore_get.called
-
-        ((args, kwargs),) = safe_urlopen.call_args_list
-        data = json.loads(kwargs["data"])
-
-        assert data["action"] == "created"
-        assert data["installation"]["uuid"] == install.uuid
-        assert data["data"]["error"]["event_id"] == event.event_id
-        assert data["data"]["error"]["issue_id"] == str(event.group_id)
-        assert kwargs["headers"].keys() >= {
-            "Content-Type",
-            "Request-ID",
-            "Sentry-Hook-Resource",
-            "Sentry-Hook-Timestamp",
-            "Sentry-Hook-Signature",
-        }
-
-    @with_feature("organizations:integrations-event-hooks")
-    @override_options({"sentryapps.process-resource-change.use-eventid": True})
-    def test_error_created_sends_webhook_no_event_payload_eventid_only(self, safe_urlopen):
-        sentry_app = self.create_sentry_app(
-            organization=self.project.organization, events=["error.created"]
-        )
-        install = self.create_sentry_app_installation(
-            organization=self.project.organization, slug=sentry_app.slug
-        )
-
-        one_min_ago = before_now(minutes=1).timestamp()
-        event = self.store_event(
-            data={
-                "message": "Foo bar",
-                "exception": {"type": "Foo", "value": "oh no"},
-                "level": "error",
-                "timestamp": one_min_ago,
-            },
-            project_id=self.project.id,
-            assert_no_errors=False,
-        )
-
-        with self.tasks(), patch(
-            "sentry.sentry_apps.tasks.sentry_apps.nodestore.backend.get",
-            wraps=nodestore.backend.get,
-        ) as nodestore_get:
-            post_process_group(
-                is_new=False,
-                is_regression=False,
-                is_new_group_environment=False,
-                cache_key=write_event_to_cache(event),
-                group_id=event.group_id,
-                project_id=self.project.id,
-            )
-
-            assert nodestore_get.called
 
         ((args, kwargs),) = safe_urlopen.call_args_list
         data = json.loads(kwargs["data"])
@@ -416,6 +457,7 @@ class TestProcessResourceChange(TestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                eventstream_type=EventStreamEventType.Error,
             )
 
         assert not safe_urlopen.called
@@ -465,6 +507,7 @@ class TestSendResourceChangeWebhook(TestCase):
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
                 project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
             )
 
         assert len(safe_urlopen.mock_calls) == 2

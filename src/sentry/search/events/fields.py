@@ -1130,6 +1130,9 @@ class NumericColumn(ColumnArg):
             "span.self_time",
             "ai.total_tokens.used",
             "ai.total_cost",
+            "http.decoded_response_content_length",
+            "http.response_content_length",
+            "http.response_transfer_size",
         ]:
             return value
         snuba_column = SEARCH_MAP.get(value)
@@ -1649,9 +1652,9 @@ FUNCTIONS = {
             calculated_args=[
                 {
                     "name": "tolerated",
-                    "fn": lambda args: args["satisfaction"] * 4.0
-                    if args["satisfaction"] is not None
-                    else None,
+                    "fn": lambda args: (
+                        args["satisfaction"] * 4.0 if args["satisfaction"] is not None else None
+                    ),
                 }
             ],
             conditional_transform=ConditionalFunction(
@@ -1690,9 +1693,9 @@ FUNCTIONS = {
             calculated_args=[
                 {
                     "name": "tolerated",
-                    "fn": lambda args: args["satisfaction"] * 4.0
-                    if args["satisfaction"] is not None
-                    else None,
+                    "fn": lambda args: (
+                        args["satisfaction"] * 4.0 if args["satisfaction"] is not None else None
+                    ),
                 },
                 {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
             ],

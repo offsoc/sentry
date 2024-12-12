@@ -19,14 +19,14 @@ export function TraceTransactionRow(
     <div
       key={props.index}
       ref={r =>
-        props.tabIndex === 0 && !props.isEmbedded
+        props.tabIndex === 0
           ? maybeFocusTraceRow(r, props.node, props.previouslyFocusedNodeRef)
           : null
       }
       tabIndex={props.tabIndex}
       className={`TraceRow ${props.rowSearchClassName} ${props.node.hasErrors ? props.node.maxIssueSeverity : ''}`}
       onKeyDown={props.onRowKeyDown}
-      onClick={props.onRowClick}
+      onPointerDown={props.onRowClick}
       style={props.style}
     >
       <div
@@ -70,7 +70,7 @@ export function TraceTransactionRow(
           />
           <span className="TraceOperation">{props.node.value['transaction.op']}</span>
           <strong className="TraceEmDash"> — </strong>
-          <span>{props.node.value.transaction}</span>
+          <span className="TraceDescription">{props.node.value.transaction}</span>
         </div>
       </div>
       <div
@@ -79,6 +79,7 @@ export function TraceTransactionRow(
         onDoubleClick={props.onRowDoubleClick}
       >
         <TraceBar
+          node={props.node}
           virtualized_index={props.virtualized_index}
           manager={props.manager}
           color={makeTraceNodeBarColor(props.theme, props.node)}

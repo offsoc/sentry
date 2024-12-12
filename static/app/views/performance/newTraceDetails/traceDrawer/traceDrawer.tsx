@@ -41,16 +41,17 @@ import type {TraceReducerAction, TraceReducerState} from '../traceState';
 import {TRACE_DRAWER_DEFAULT_SIZES} from '../traceState/tracePreferences';
 import {useTraceState, useTraceStateDispatch} from '../traceState/traceStateProvider';
 import {getTraceTabTitle, type TraceTabsReducerState} from '../traceState/traceTabs';
+import {useHasTraceNewUi} from '../useHasTraceNewUi';
 
 import {TraceDetails} from './tabs/trace';
 import {TraceTreeNodeDetails} from './tabs/traceTreeNodeDetails';
 
 type TraceDrawerProps = {
   manager: VirtualizedViewManager;
-  metaResults: TraceMetaQueryResults;
+  meta: TraceMetaQueryResults;
   onScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   onTabScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-  replayRecord: ReplayRecord | null;
+  replay: ReplayRecord | null;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   scheduler: TraceScheduler;
   trace: TraceTree;
@@ -66,6 +67,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
   const contentContainerRef = useRef<HTMLDivElement>(null);
+  const hasNewTraceUi = useHasTraceNewUi();
 
   // The /events-facets/ endpoint used to fetch tags for the trace tab is slow. Therefore,
   // we try to prefetch the tags as soon as the drawer loads, hoping that the tags will be loaded
@@ -410,7 +412,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
               />
             ) : null}
           </TabsContainer>
-          {traceState.preferences.drawer.layoutOptions.length > 0 ? (
+          {traceState.preferences.drawer.layoutOptions.length > 0 && !hasNewTraceUi ? (
             <TraceLayoutButtons traceDispatch={traceDispatch} trace_state={traceState} />
           ) : null}
         </TabsLayout>
@@ -426,7 +428,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
               {traceState.tabs.current_tab ? (
                 traceState.tabs.current_tab.node === 'trace' ? (
                   <TraceDetails
-                    metaResults={props.metaResults}
+                    meta={props.meta}
                     traceType={props.traceType}
                     tree={props.trace}
                     node={props.trace.root.children[0]}
@@ -443,7 +445,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
                   />
                 ) : (
                   <TraceTreeNodeDetails
-                    replayRecord={props.replayRecord}
+                    replay={props.replay}
                     manager={props.manager}
                     organization={organization}
                     onParentClick={onParentClick}
@@ -666,7 +668,7 @@ const TabsHeightContainer = styled('div')<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
   absolute?: boolean;
 }>`
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.background};
   left: ${p => (p.layout === 'drawer left' ? '0' : 'initial')};
   right: ${p => (p.layout === 'drawer right' ? '0' : 'initial')};
   position: ${p => (p.absolute ? 'absolute' : 'relative')};
@@ -724,7 +726,7 @@ const TabLayoutControlItem = styled('li')`
   margin: 0;
   position: relative;
   z-index: 10;
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.background};
 `;
 
 const Tab = styled('li')`

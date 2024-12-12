@@ -84,14 +84,18 @@ type Props = {
   comparisonDelta?: number;
   formattedAggregate?: string;
   header?: React.ReactNode;
+  includeConfidence?: boolean;
   includeHistorical?: boolean;
   isOnDemandMetricAlert?: boolean;
+  onConfidenceDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   onDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   onHistoricalDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   showTotalCount?: boolean;
 };
 
-const TIME_PERIOD_MAP: Record<TimePeriod, string> = {
+type TimePeriodMap = Omit<Record<TimePeriod, string>, TimePeriod.TWENTY_EIGHT_DAYS>;
+
+const TIME_PERIOD_MAP: TimePeriodMap = {
   [TimePeriod.SIX_HOURS]: t('Last 6 hours'),
   [TimePeriod.ONE_DAY]: t('Last 24 hours'),
   [TimePeriod.THREE_DAYS]: t('Last 3 days'),
@@ -134,6 +138,24 @@ export const AVAILABLE_TIME_PERIODS: Record<TimeWindow, readonly TimePeriod[]> =
   [TimeWindow.ONE_DAY]: [TimePeriod.FOURTEEN_DAYS],
 };
 
+const MOST_EAP_TIME_PERIOD = [
+  TimePeriod.ONE_DAY,
+  TimePeriod.THREE_DAYS,
+  TimePeriod.SEVEN_DAYS,
+];
+
+const EAP_AVAILABLE_TIME_PERIODS = {
+  [TimeWindow.ONE_MINUTE]: [], // One minute intervals are not allowed on EAP Alerts
+  [TimeWindow.FIVE_MINUTES]: MOST_EAP_TIME_PERIOD,
+  [TimeWindow.TEN_MINUTES]: MOST_EAP_TIME_PERIOD,
+  [TimeWindow.FIFTEEN_MINUTES]: MOST_EAP_TIME_PERIOD,
+  [TimeWindow.THIRTY_MINUTES]: MOST_EAP_TIME_PERIOD,
+  [TimeWindow.ONE_HOUR]: MOST_EAP_TIME_PERIOD,
+  [TimeWindow.TWO_HOURS]: MOST_EAP_TIME_PERIOD,
+  [TimeWindow.FOUR_HOURS]: [TimePeriod.SEVEN_DAYS],
+  [TimeWindow.ONE_DAY]: [TimePeriod.SEVEN_DAYS],
+};
+
 const TIME_WINDOW_TO_SESSION_INTERVAL = {
   [TimeWindow.THIRTY_MINUTES]: '30m',
   [TimeWindow.ONE_HOUR]: '1h',
@@ -147,12 +169,18 @@ const SESSION_AGGREGATE_TO_HEADING = {
   [SessionsAggregate.CRASH_FREE_USERS]: t('Total Users'),
 };
 
-const HISTORICAL_TIME_PERIOD_MAP: Record<TimePeriod, string> = {
+const HISTORICAL_TIME_PERIOD_MAP: TimePeriodMap = {
   [TimePeriod.SIX_HOURS]: '678h',
   [TimePeriod.ONE_DAY]: '29d',
   [TimePeriod.THREE_DAYS]: '31d',
   [TimePeriod.SEVEN_DAYS]: '35d',
   [TimePeriod.FOURTEEN_DAYS]: '42d',
+};
+
+const HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS: TimePeriodMap = {
+  ...HISTORICAL_TIME_PERIOD_MAP,
+  [TimePeriod.SEVEN_DAYS]: '28d', // fetching 28 + 7 days of historical data at 5 minute increments exceeds the max number of data points that snuba can return
+  [TimePeriod.FOURTEEN_DAYS]: '28d', // fetching 28 + 14 days of historical data at 5 minute increments exceeds the max number of data points that snuba can return
 };
 
 const noop: any = () => {};
@@ -224,6 +252,7 @@ class TriggersChart extends PureComponent<Props, State> {
 
   // Create new API Client so that historical requests aren't automatically deduplicated
   historicalAPI = new Client();
+  confidenceAPI = new Client();
 
   get availableTimePeriods() {
     // We need to special case sessions, because sub-hour windows are available
@@ -233,6 +262,10 @@ class TriggersChart extends PureComponent<Props, State> {
         ...AVAILABLE_TIME_PERIODS,
         [TimeWindow.THIRTY_MINUTES]: [TimePeriod.SIX_HOURS],
       };
+    }
+
+    if (this.props.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+      return EAP_AVAILABLE_TIME_PERIODS;
     }
 
     return AVAILABLE_TIME_PERIODS;
@@ -269,7 +302,6 @@ class TriggersChart extends PureComponent<Props, State> {
       projects,
       query,
       dataset,
-      aggregate,
     } = this.props;
 
     const statsPeriod = this.getStatsPeriod();
@@ -288,7 +320,6 @@ class TriggersChart extends PureComponent<Props, State> {
       queryDataset = DiscoverDatasets.ERRORS;
     }
 
-    const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
     try {
       const totalCount = await fetchTotalCount(api, organization.slug, {
         field: [],
@@ -297,7 +328,7 @@ class TriggersChart extends PureComponent<Props, State> {
         statsPeriod,
         environment: environment ? [environment] : [],
         dataset: queryDataset,
-        ...getForceMetricsLayerQueryExtras(organization, dataset, alertType),
+        ...getForceMetricsLayerQueryExtras(organization, dataset),
       });
       this.setState({totalCount});
     } catch (e) {
@@ -445,14 +476,13 @@ class TriggersChart extends PureComponent<Props, State> {
       thresholdType,
       isQueryValid,
       isOnDemandMetricAlert,
+      onConfidenceDataLoaded,
     } = this.props;
 
     const period = this.getStatsPeriod();
     const renderComparisonStats = Boolean(
       organization.features.includes('change-alerts') && comparisonDelta
     );
-
-    const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
 
     const queryExtras = {
       ...getMetricDatasetQueryExtras({
@@ -461,7 +491,7 @@ class TriggersChart extends PureComponent<Props, State> {
         dataset,
         newAlertOrQuery,
       }),
-      ...getForceMetricsLayerQueryExtras(organization, dataset, alertType),
+      ...getForceMetricsLayerQueryExtras(organization, dataset),
       ...(shouldUseErrorsDiscoverDataset(query, dataset, organization)
         ? {dataset: DiscoverDatasets.ERRORS}
         : {}),
@@ -475,6 +505,7 @@ class TriggersChart extends PureComponent<Props, State> {
         query,
         queryExtras,
         sampleRate,
+        period,
         environment: environment ? [environment] : undefined,
         project: projects.map(({id}) => Number(id)),
         interval: `${timeWindow}m`,
@@ -483,8 +514,6 @@ class TriggersChart extends PureComponent<Props, State> {
         includePrevious: false,
         currentSeriesNames: [formattedAggregate || aggregate],
         partial: false,
-        includeTimeAggregation: false,
-        includeTransformedData: false,
         limit: 15,
         children: noop,
       };
@@ -495,15 +524,15 @@ class TriggersChart extends PureComponent<Props, State> {
             <OnDemandMetricRequest
               {...baseProps}
               api={this.historicalAPI}
-              period={period}
+              period={
+                timeWindow === 5
+                  ? HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]
+                  : HISTORICAL_TIME_PERIOD_MAP[period]
+              }
               dataLoadedCallback={onHistoricalDataLoaded}
             />
           ) : null}
-          <OnDemandMetricRequest
-            {...baseProps}
-            period={period}
-            dataLoadedCallback={onDataLoaded}
-          >
+          <OnDemandMetricRequest {...baseProps} dataLoadedCallback={onDataLoaded}>
             {({
               loading,
               errored,
@@ -538,7 +567,6 @@ class TriggersChart extends PureComponent<Props, State> {
               });
             }}
           </OnDemandMetricRequest>
-          );
         </Fragment>
       );
     }
@@ -593,6 +621,10 @@ class TriggersChart extends PureComponent<Props, State> {
       );
     }
 
+    const useRpc =
+      organization.features.includes('eap-alerts-ui-uses-rpc') &&
+      dataset === Dataset.EVENTS_ANALYTICS_PLATFORM;
+
     const baseProps = {
       api,
       organization,
@@ -607,6 +639,7 @@ class TriggersChart extends PureComponent<Props, State> {
       includePrevious: false,
       currentSeriesNames: [formattedAggregate || aggregate],
       partial: false,
+      useRpc,
     };
 
     return (
@@ -615,8 +648,22 @@ class TriggersChart extends PureComponent<Props, State> {
           <EventsRequest
             {...baseProps}
             api={this.historicalAPI}
-            period={HISTORICAL_TIME_PERIOD_MAP[period]}
+            period={
+              timeWindow === 5
+                ? HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]
+                : HISTORICAL_TIME_PERIOD_MAP[period]
+            }
             dataLoadedCallback={onHistoricalDataLoaded}
+          >
+            {noop}
+          </EventsRequest>
+        ) : null}
+        {this.props.includeConfidence ? (
+          <EventsRequest
+            {...baseProps}
+            api={this.confidenceAPI}
+            period="7d"
+            dataLoadedCallback={onConfidenceDataLoaded}
           >
             {noop}
           </EventsRequest>
