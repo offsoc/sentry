@@ -174,7 +174,7 @@ class SpanMRI(Enum):
     CACHE_ITEM_SIZE = "d:spans/cache.item_size@byte"
     DECODED_RESPONSE_CONTENT_LENGTH = "d:spans/http.decoded_response_content_length@byte"
     MESSAGE_RECEIVE_LATENCY = "g:spans/messaging.message.receive.latency@millisecond"
-    MOBILE_FRAMES_DELAY = "d:spans/mobile.frames_delay@second"
+    MOBILE_FRAMES_DELAY = "g:spans/mobile.frames_delay@second"
     MOBILE_FROZEN_FRAMES = "g:spans/mobile.frozen_frames@none"
     MOBILE_SLOW_FRAMES = "g:spans/mobile.slow_frames@none"
     MOBILE_TOTAL_FRAMES = "g:spans/mobile.total_frames@none"
