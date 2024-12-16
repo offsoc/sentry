@@ -114,6 +114,7 @@ class TransactionMRI(Enum):
     MEASUREMENTS_FRAMES_SLOW = "d:transactions/measurements.frames_slow@none"
     MEASUREMENTS_FRAMES_SLOW_RATE = "d:transactions/measurements.frames_slow_rate@ratio"
     MEASUREMENTS_FRAMES_TOTAL = "d:transactions/measurements.frames_total@none"
+    MEASUREMENTS_FRAMES_DELAY = "d:transactions/measurements.frames_delay@second"
     MEASUREMENTS_TIME_TO_INITIAL_DISPLAY = (
         "d:transactions/measurements.time_to_initial_display@millisecond"
     )
@@ -173,7 +174,7 @@ class SpanMRI(Enum):
     CACHE_ITEM_SIZE = "d:spans/cache.item_size@byte"
     DECODED_RESPONSE_CONTENT_LENGTH = "d:spans/http.decoded_response_content_length@byte"
     MESSAGE_RECEIVE_LATENCY = "g:spans/messaging.message.receive.latency@millisecond"
-    MOBILE_FRAMES_DELAY = "g:spans/mobile.frames_delay@second"
+    MOBILE_FRAMES_DELAY = "d:spans/mobile.frames_delay@second"
     MOBILE_FROZEN_FRAMES = "g:spans/mobile.frozen_frames@none"
     MOBILE_SLOW_FRAMES = "g:spans/mobile.slow_frames@none"
     MOBILE_TOTAL_FRAMES = "g:spans/mobile.total_frames@none"

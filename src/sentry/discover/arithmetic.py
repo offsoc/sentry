@@ -157,6 +157,7 @@ class ArithmeticVisitor(NodeVisitor):
         "measurements.fcp",
         "measurements.fid",
         "measurements.fp",
+        "measurements.frames_delay",
         "measurements.frames_frozen",
         "measurements.frames_slow",
         "measurements.frames_total",

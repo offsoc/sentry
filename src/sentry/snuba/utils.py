@@ -52,6 +52,7 @@ TRANSACTION_ONLY_FIELDS = [
     "measurements.frames_frozen",
     "measurements.frames_slow_rate",
     "measurements.frames_frozen_rate",
+    "measurements.frames_delay",
     "measurements.stall_count",
     "measurements.stall_total_time",
     "measurements.stall_longest_time",

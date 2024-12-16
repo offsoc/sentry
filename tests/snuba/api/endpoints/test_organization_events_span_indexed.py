@@ -586,6 +586,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             ("frames_slow", "number", None),  # should be integer but keeping it consistent
             ("frames_slow_rate", "percentage", None),
             ("frames_total", "number", None),  # should be integer but keeping it consistent
+            ("frames_delay", "duration", "second"),
             ("time_to_initial_display", "duration", "millisecond"),
             ("time_to_full_display", "duration", "millisecond"),
             ("stall_count", "number", None),  # should be integer but keeping it consistent

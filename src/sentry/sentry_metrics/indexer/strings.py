@@ -101,6 +101,7 @@ TRANSACTION_METRICS_NAMES = {
     "d:transactions/measurements.score.weight.fid@ratio": PREFIX + 146,
     "d:transactions/measurements.score.weight.lcp@ratio": PREFIX + 147,
     "d:transactions/measurements.score.weight.ttfb@ratio": PREFIX + 148,
+    "g:transactions/measurements.frames_delay@second": PREFIX + 149,
     # Last possible index: 199
 }
 
@@ -231,6 +232,7 @@ SPAN_METRICS_NAMES = {
     "g:spans/self_time_light@millisecond": PREFIX + 420,
     "g:spans/total_time@millisecond": PREFIX + 421,
     "c:spans/count_per_root_project@none": PREFIX + 422,
+    "g:spans/frames_delay@second": PREFIX + 423,
     # Last possible index: 499
 }
 

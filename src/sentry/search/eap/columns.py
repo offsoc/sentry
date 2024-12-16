@@ -340,6 +340,7 @@ SPAN_COLUMN_DEFINITIONS = {
         simple_measurements_field("frames_slow"),
         simple_measurements_field("frames_slow_rate", "percentage"),
         simple_measurements_field("frames_total"),
+        simple_measurements_field("frames_delay", "second"),
         simple_measurements_field("time_to_initial_display", "millisecond"),
         simple_measurements_field("time_to_full_display", "millisecond"),
         simple_measurements_field("stall_count"),

@@ -801,6 +801,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             "measurements.frames_slow",
             "measurements.frames_slow_rate",
             "measurements.frames_total",
+            "measurements.frames_delay",
             "measurements.time_to_initial_display",
             "measurements.time_to_full_display",
             "measurements.stall_count",

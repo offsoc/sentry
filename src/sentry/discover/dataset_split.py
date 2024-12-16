@@ -75,6 +75,7 @@ TRANSACTION_ONLY_FIELDS = [
     "measurements[ttfb]",
     "measurements[app_start_cold]",
     "measurements[app_start_warm]",
+    "measurements[frames_delay]",
     "measurements[frames_total]",
     "measurements[frames_slow]",
     "measurements[frames_frozen]",
