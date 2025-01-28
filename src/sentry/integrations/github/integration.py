@@ -230,16 +230,19 @@ class GitHubIntegration(
         _, _, source_path = url.partition("/")
         return source_path
 
-    def get_repositories(self, query: str | None = None) -> Sequence[dict[str, Any]]:
+    def get_repositories(
+        self, query: str | None = None, fetch_max_pages: bool = False
+    ) -> Sequence[dict[str, Any]]:
         """
         args:
         * query - a query to filter the repositories by
+        * fetch_max_pages - fetch as many repos as possible using pagination (slow)
 
         This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
         """
         if not query:
-            all_repos = self.get_client().get_repos()
+            all_repos = self.get_client().get_repos(fetch_max_pages)
             return [
                 {
                     "name": i["name"],
