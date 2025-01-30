@@ -17,7 +17,17 @@ from sentry.utils.event_frames import EventFrame, try_munge_frame_path
 
 logger = logging.getLogger(__name__)
 
-SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby", "php", "go", "csharp"]
+# Keep this list in sync with supportedStacktracePlatforms in stacktraceLink.tsx
+SUPPORTED_LANGUAGES = [
+    "csharp",
+    "elixir",
+    "go",
+    "javascript",
+    "node",
+    "php",
+    "python",
+    "ruby",
+]
 
 
 class CodeMapping(NamedTuple):
