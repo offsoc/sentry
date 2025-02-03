@@ -24,7 +24,13 @@ export type TimeseriesData = {
 export type ErrorProp = Error | string;
 
 export interface StateProps {
+  /**
+   * Error? This is an error, You can pass it it
+   */
   error?: ErrorProp;
+  /**
+   * Boolean and whatnot, eh
+   */
   isLoading?: boolean;
   onRetry?: () => void;
 }

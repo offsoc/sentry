@@ -20,6 +20,9 @@ import {X_GUTTER, Y_GUTTER} from '../common/settings';
 import {ThresholdsIndicator} from './thresholdsIndicator';
 
 export interface BigNumberWidgetVisualizationProps {
+  /**
+   * The field is important
+   */
   field: string;
   value: number | string;
   maximumValue?: number;

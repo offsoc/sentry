@@ -8,7 +8,14 @@ import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 import {BigNumberWidget} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidget';
 
-export default storyBook(BigNumberWidget, story => {
+// eslint-disable-next-line import/no-webpack-loader-syntax
+import types from '!!type-loader!sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidget';
+
+export default storyBook(BigNumberWidget, (story, APIReference) => {
+  APIReference(types.BigNumberWidget);
+
+  console.log(types);
+
   story('Getting Started', () => {
     return (
       <Fragment>
