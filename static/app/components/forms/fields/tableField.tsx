@@ -41,7 +41,7 @@ const DEFAULT_PROPS: DefaultProps = {
 export default class TableField extends Component<InputFieldProps> {
   static defaultProps = DEFAULT_PROPS;
 
-  hasValue = value => defined(value) && !isEmptyObject(value);
+  hasValue = (value: any) => defined(value) && !isEmptyObject(value);
 
   renderField = (props: RenderProps) => {
     const {
@@ -61,7 +61,7 @@ export default class TableField extends Component<InputFieldProps> {
     const valueIsEmpty = this.hasValue(props.value);
     const value = valueIsEmpty ? (props.value as any[]) : [];
 
-    const saveChanges = (nextValue: object[]) => {
+    const saveChanges = (nextValue: Array<Record<PropertyKey, unknown>>) => {
       onChange?.(nextValue, []);
 
       // nextValue is an array of ObservableObjectAdministration objects
@@ -81,7 +81,7 @@ export default class TableField extends Component<InputFieldProps> {
       saveChanges([...value, emptyValue]);
     };
 
-    const removeRow = rowIndex => {
+    const removeRow = (rowIndex: any) => {
       const newValue = [...value];
       newValue.splice(rowIndex, 1);
       saveChanges(newValue);
@@ -184,7 +184,7 @@ export default class TableField extends Component<InputFieldProps> {
       <FormField
         {...this.props}
         formatMessageValue={false}
-        inline={({model}) => !this.hasValue(model.getValue(this.props.name))}
+        inline={({model}: any) => !this.hasValue(model.getValue(this.props.name))}
       >
         {this.renderField}
       </FormField>

@@ -15,9 +15,16 @@ jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
 
 describe('HTTPLandingPage', function () {
-  const organization = OrganizationFixture({features: ['insights-initial-modules']});
+  const organization = OrganizationFixture({
+    features: ['insights-initial-modules', 'insights-entry-points'],
+  });
 
-  let spanListRequestMock, spanChartsRequestMock;
+  let throughputRequestMock!: jest.Mock;
+  let durationRequestMock!: jest.Mock;
+  let statusRequestMock!: jest.Mock;
+
+  let spanListRequestMock!: jest.Mock;
+  let regionFilterRequestMock!: jest.Mock;
 
   jest.mocked(useOnboardingProject).mockReturnValue(undefined);
 
@@ -74,6 +81,25 @@ describe('HTTPLandingPage', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
       body: [ProjectFixture({name: 'frontend'}), ProjectFixture({name: 'backend'})],
+    });
+
+    regionFilterRequestMock = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/events/`,
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.insights.user-geo-subregion-selector',
+        }),
+      ],
+      body: {
+        data: [
+          {'user.geo.subregion': '21', 'count()': 123},
+          {'user.geo.subregion': '155', 'count()': 123},
+        ],
+        meta: {
+          fields: {'user.geo.subregion': 'string', 'count()': 'integer'},
+        },
+      },
     });
 
     MockApiClient.addMockResponse({
@@ -143,15 +169,55 @@ describe('HTTPLandingPage', function () {
       },
     });
 
-    spanChartsRequestMock = MockApiClient.addMockResponse({
+    throughputRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.performance.http.landing-throughput-chart',
+        }),
+      ],
       body: {
-        'spm()': {
-          data: [
-            [1699907700, [{count: 7810.2}]],
-            [1699908000, [{count: 1216.8}]],
-          ],
+        data: [
+          [1699907700, [{count: 7810.2}]],
+          [1699908000, [{count: 1216.8}]],
+        ],
+      },
+    });
+
+    durationRequestMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.performance.http.landing-duration-chart',
+        }),
+      ],
+      body: {
+        data: [
+          [1699907700, [{count: 710.2}]],
+          [1699908000, [{count: 116.8}]],
+        ],
+      },
+    });
+
+    statusRequestMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.performance.http.landing-response-code-chart',
+        }),
+      ],
+      body: {
+        'http_response_rate(3)': {
+          data: [[1699908000, [{count: 0.2}]]],
+        },
+        'http_response_rate(4)': {
+          data: [[1699908000, [{count: 0.1}]]],
+        },
+        'http_response_rate(5)': {
+          data: [[1699908000, [{count: 0.3}]]],
         },
       },
     });
@@ -164,7 +230,7 @@ describe('HTTPLandingPage', function () {
   it('fetches module data', async function () {
     render(<HTTPLandingPage />, {organization});
 
-    expect(spanChartsRequestMock).toHaveBeenNthCalledWith(
+    expect(throughputRequestMock).toHaveBeenNthCalledWith(
       1,
       `/organizations/${organization.slug}/events-stats/`,
       expect.objectContaining({
@@ -185,12 +251,31 @@ describe('HTTPLandingPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'spm()',
+          transformAliasToInputFormat: '1',
         },
       })
     );
 
-    expect(spanChartsRequestMock).toHaveBeenNthCalledWith(
-      2,
+    expect(regionFilterRequestMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          dataset: 'spansMetrics',
+          environment: [],
+          field: ['user.geo.subregion', 'count()'],
+          per_page: 50,
+          project: [],
+          query: 'has:user.geo.subregion',
+          sort: '-count()',
+          referrer: 'api.insights.user-geo-subregion-selector',
+          statsPeriod: '10d',
+        },
+      })
+    );
+
+    expect(durationRequestMock).toHaveBeenNthCalledWith(
+      1,
       `/organizations/${organization.slug}/events-stats/`,
       expect.objectContaining({
         method: 'GET',
@@ -210,12 +295,13 @@ describe('HTTPLandingPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',
+          transformAliasToInputFormat: '1',
         },
       })
     );
 
-    expect(spanChartsRequestMock).toHaveBeenNthCalledWith(
-      3,
+    expect(statusRequestMock).toHaveBeenNthCalledWith(
+      1,
       `/organizations/${organization.slug}/events-stats/`,
       expect.objectContaining({
         method: 'GET',
@@ -239,6 +325,7 @@ describe('HTTPLandingPage', function () {
             'http_response_rate(4)',
             'http_response_rate(5)',
           ],
+          transformAliasToInputFormat: '1',
         },
       })
     );
@@ -280,9 +367,10 @@ describe('HTTPLandingPage', function () {
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-    expect(screen.getByRole('heading', {level: 1})).toHaveTextContent(
-      'Outbound API Requests'
-    );
+    expect(screen.getByRole('heading', {level: 1})).toHaveTextContent('Backend');
+    const tab = screen.getByRole('tab', {name: 'Outbound API Requests'});
+    expect(tab).toBeInTheDocument();
+    expect(tab).toHaveAttribute('aria-selected', 'true');
 
     expect(screen.getByRole('table', {name: 'Domains'})).toBeInTheDocument();
 

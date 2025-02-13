@@ -11,7 +11,11 @@ from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor, RegexNode
 
-from sentry.grouping.utils import bool_from_string
+from sentry.grouping.utils import (
+    DEFAULT_FINGERPRINT_VARIABLE,
+    bool_from_string,
+    is_default_fingerprint_var,
+)
 from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.event_frames import find_stack_frames
@@ -240,6 +244,9 @@ class EventDatastore:
         return self._release
 
     def get_values(self, match_type: str) -> list[dict[str, Any]]:
+        """
+        Pull values from all the spots in the event appropriate to the given match type.
+        """
         return getattr(self, "_get_" + match_type)()
 
 
@@ -375,7 +382,12 @@ MATCHERS = {
 
 
 class FingerprintMatcher:
-    def __init__(self, key: str, pattern: str, negated: bool = False) -> None:
+    def __init__(
+        self,
+        key: str,  # The event attribute on which to match
+        pattern: str,  # The value to match (or to not match, depending on `negated`)
+        negated: bool = False,  # If True, match when `event[key]` does NOT equal `pattern`
+    ) -> None:
         if key.startswith("tags."):
             self.key = key
         else:
@@ -422,18 +434,18 @@ class FingerprintMatcher:
         return False
 
     def _positive_match(self, values: dict[str, Any]) -> bool:
-        # path is special in that it tests against two values (abs_path and path)
+        # `path` is special in that it tests against two values (`abs_path` and `filename`)
         if self.key == "path":
             value = values.get("abs_path")
             if self._positive_path_match(value):
                 return True
             alt_value = values.get("filename")
             if alt_value != value:
-                if self._positive_path_match(value):
+                if self._positive_path_match(alt_value):
                     return True
             return False
 
-        # message tests against value as well as this is what users expect
+        # message tests against exception value also, as this is what users expect
         if self.key == "message":
             for key in ("message", "value"):
                 value = values.get(key)
@@ -444,19 +456,12 @@ class FingerprintMatcher:
         value = values.get(self.key)
         if value is None:
             return False
-        elif self.key == "package":
+        elif self.key in ["package", "release"]:
             if self._positive_path_match(value):
                 return True
-        elif self.key == "family":
+        elif self.key in ["family", "sdk"]:
             flags = self.pattern.split(",")
             if "all" in flags or value in flags:
-                return True
-        elif self.key == "sdk":
-            flags = self.pattern.split(",")
-            if "all" in flags or value in flags:
-                return True
-        elif self.key == "release":
-            if self._positive_path_match(value):
                 return True
         elif self.key == "app":
             ref_val = bool_from_string(self.pattern)
@@ -583,7 +588,7 @@ class FingerprintingVisitor(NodeVisitorBase):
         in_header = True
         for child in children:
             if isinstance(child, str):
-                if in_header and child[:2] == "##":
+                if in_header and child.startswith("##"):
                     changelog.append(child[2:].rstrip())
                 else:
                     in_header = False
@@ -646,6 +651,9 @@ class FingerprintingVisitor(NodeVisitorBase):
 
     def visit_fp_value(self, _: object, children: tuple[object, str, object, object]) -> str:
         _, argument, _, _ = children
+        # Normalize variations of `{{ default }}`
+        if isinstance(argument, str) and is_default_fingerprint_var(argument):
+            return DEFAULT_FINGERPRINT_VARIABLE
         return argument
 
     def visit_fp_attribute(self, _: object, children: tuple[str, object, str]) -> tuple[str, str]:

@@ -34,7 +34,7 @@ describe('StreamlinedActivitySection', function () {
         id: 'note-1',
         data: {text: 'Test Note'},
         dateCreated: '2020-01-01T00:00:00',
-        user: user,
+        user,
         project,
       },
     ],
@@ -142,7 +142,7 @@ describe('StreamlinedActivitySection', function () {
           id: 'note-1',
           data: {text: 'Group Test'},
           dateCreated: '2020-01-01T00:00:00',
-          user: user,
+          user,
           project,
         },
       ],
@@ -252,5 +252,10 @@ describe('StreamlinedActivitySection', function () {
     }
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('renders the number of comments', function () {
+    render(<StreamlinedActivitySection group={{...group, numComments: 2}} />);
+    expect(screen.getByLabelText('Number of comments: 2')).toBeInTheDocument();
   });
 });

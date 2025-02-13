@@ -66,6 +66,7 @@ class _UserOptions(TypedDict):
     timezone: str
     clock24Hours: bool
     prefersIssueDetailsStreamlinedUI: bool
+    quickStartDisplay: dict[str, int]
 
 
 class UserSerializerResponseOptional(TypedDict, total=False):
@@ -113,7 +114,7 @@ class UserSerializer(Serializer):
         return False
 
     def _get_identities(
-        self, item_list: Sequence[User], user: User
+        self, item_list: Sequence[User], user: User | RpcUser | AnonymousUser
     ) -> dict[int, list[AuthIdentity]]:
 
         if not (env.request and has_elevated_mode(env.request)):
@@ -131,7 +132,7 @@ class UserSerializer(Serializer):
         return results
 
     def get_attrs(
-        self, item_list: Sequence[User], user: User, **kwargs: Any
+        self, item_list: Sequence[User], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> MutableMapping[User, Any]:
         user_ids = [i.id for i in item_list]
         avatars = {a.user_id: a for a in UserAvatar.objects.filter(user_id__in=user_ids)}
@@ -198,6 +199,7 @@ class UserSerializer(Serializer):
                 "prefersIssueDetailsStreamlinedUI": options.get(
                     "prefers_issue_details_streamlined_ui", False
                 ),
+                "quickStartDisplay": options.get("quick_start_display") or {},
             }
 
             d["flags"] = {"newsletter_consent_prompt": bool(obj.flags.newsletter_consent_prompt)}
@@ -249,7 +251,7 @@ class DetailedUserSerializer(UserSerializer):
     """
 
     def get_attrs(
-        self, item_list: Sequence[User], user: User, **kwargs: Any
+        self, item_list: Sequence[User], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> MutableMapping[User, Any]:
         attrs = super().get_attrs(item_list, user)
 
@@ -322,7 +324,7 @@ class DetailedSelfUserSerializer(UserSerializer):
     """
 
     def get_attrs(
-        self, item_list: Sequence[User], user: User, **kwargs: Any
+        self, item_list: Sequence[User], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> MutableMapping[User, Any]:
         attrs = super().get_attrs(item_list, user)
         user_ids = [i.id for i in item_list]

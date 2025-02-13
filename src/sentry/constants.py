@@ -710,13 +710,12 @@ HIDE_AI_FEATURES_DEFAULT = False
 GITHUB_COMMENT_BOT_DEFAULT = True
 ISSUE_ALERTS_THREAD_DEFAULT = True
 METRIC_ALERTS_THREAD_DEFAULT = True
-METRICS_ACTIVATE_PERCENTILES_DEFAULT = True
-METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT = False
 DATA_CONSENT_DEFAULT = False
 UPTIME_AUTODETECTION = True
 TARGET_SAMPLE_RATE_DEFAULT = 1.0
 SAMPLING_MODE_DEFAULT = "organization"
 ROLLBACK_ENABLED_DEFAULT = True
+STREAMLINE_UI_ONLY = None
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True
@@ -781,6 +780,7 @@ HEALTH_CHECK_GLOBS = [
     "*/health{/,}",
     "*/healthy{/,}",
     "*/healthz{/,}",
+    "*/health_check{/,}",
     "*/_health{/,}",
     r"*/\[_health\]{/,}",
     "*/live{/,}",

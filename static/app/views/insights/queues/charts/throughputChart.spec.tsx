@@ -8,14 +8,14 @@ import {Referrer} from 'sentry/views/insights/queues/referrers';
 describe('throughputChart', () => {
   const organization = OrganizationFixture();
 
-  let eventsStatsMock;
+  let eventsStatsMock!: jest.Mock;
 
   beforeEach(() => {
     eventsStatsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       method: 'GET',
       body: {
-        data: [],
+        data: [[1739378162, [{count: 1}]]],
       },
     });
   });

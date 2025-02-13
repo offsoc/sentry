@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 import re
 from typing import Any
 
@@ -82,8 +83,7 @@ class HumanRenderer:
 
 
 class StructLogHandler(logging.StreamHandler):
-    # TODO: once factored out of getsentry the `logger` kwarg is unused and can be dropped!
-    def get_log_kwargs(self, record: logging.LogRecord, logger: object) -> dict[str, Any]:
+    def get_log_kwargs(self, record: logging.LogRecord) -> dict[str, Any]:
         kwargs = {k: v for k, v in vars(record).items() if k not in throwaways and v is not None}
         kwargs.update({"level": record.levelno, "event": record.msg})
 
@@ -108,15 +108,15 @@ class StructLogHandler(logging.StreamHandler):
         try:
             if logger is None:
                 logger = get_logger()
-            logger.log(**self.get_log_kwargs(record=record, logger=logger))
+            logger.log(**self.get_log_kwargs(record=record))
         except Exception:
             if logging.raiseExceptions:
                 raise
 
 
 class GKEStructLogHandler(StructLogHandler):
-    def get_log_kwargs(self, record: logging.LogRecord, logger: object) -> dict[str, Any]:
-        kwargs = super().get_log_kwargs(record, logger)
+    def get_log_kwargs(self, record: logging.LogRecord) -> dict[str, Any]:
+        kwargs = super().get_log_kwargs(record)
         kwargs.update(
             {
                 "logging.googleapis.com/labels": {"name": kwargs.get("name", "root")},
@@ -165,3 +165,23 @@ class MetricsLogHandler(logging.Handler):
         key = metrics_badchars_re.sub("", key)
         key = ".".join(key.split(".")[:3])
         metrics.incr(key, skip_internal=False)
+
+
+class SamplingFilter(logging.Filter):
+    """
+    A logging filter to sample logs with a fixed probability.
+
+    p      -- probability the log record is emitted. Float in range [0.0, 1.0].
+    level  -- sampling applies to log records with this level OR LOWER. Other records always pass through.
+    """
+
+    def __init__(self, p: float, level: int | None = None):
+        super().__init__()
+        assert 0.0 <= p <= 1.0
+        self.sample_rate = p
+        self.level = logging.INFO if level is None else level
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if record.levelno <= self.level:
+            return random.random() < self.sample_rate
+        return True

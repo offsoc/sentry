@@ -6,9 +6,9 @@ import JSXNode from 'sentry/components/stories/jsxNode';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';
 
+import {sampleDurationTimeSeries} from '../widgets/lineChartWidget/fixtures/sampleDurationTimeSeries';
+import {sampleThroughputTimeSeries} from '../widgets/lineChartWidget/fixtures/sampleThroughputTimeSeries';
 import {LineChartWidget} from '../widgets/lineChartWidget/lineChartWidget';
-import sampleDurationTimeSeries from '../widgets/lineChartWidget/sampleDurationTimeSeries.json';
-import sampleThroughputTimeSeries from '../widgets/lineChartWidget/sampleThroughputTimeSeries.json';
 
 import {WidgetSyncContextProvider} from './widgetSyncContext';
 
@@ -34,30 +34,14 @@ export default storyBook('WidgetSyncContext', story => {
             <MediumWidget>
               <LineChartWidget
                 title="span.duration"
-                timeseries={[sampleDurationTimeSeries]}
-                meta={{
-                  fields: {
-                    'span.duration': 'duration',
-                  },
-                  units: {
-                    'span.duration': 'millisecond',
-                  },
-                }}
+                timeSeries={[sampleDurationTimeSeries]}
               />
             </MediumWidget>
             {visible && (
               <MediumWidget>
                 <LineChartWidget
                   title="span.duration"
-                  timeseries={[sampleThroughputTimeSeries]}
-                  meta={{
-                    fields: {
-                      'spm()': 'rate',
-                    },
-                    units: {
-                      'spm()': '1/minute',
-                    },
-                  }}
+                  timeSeries={[sampleThroughputTimeSeries]}
                 />
               </MediumWidget>
             )}

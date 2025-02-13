@@ -8,8 +8,10 @@ import {
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {
+  feedbackOnboardingJsLoader,
+  replayOnboardingJsLoader,
+} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {
   AlternativeConfiguration,
   crashReportOnboardingPython,
@@ -26,7 +28,10 @@ import sentry_sdk
 from flask import Flask
 
 sentry_sdk.init(
-    dsn="${params.dsn.public}",${
+    dsn="${params.dsn.public}",
+    # Add data like request headers and IP for users,
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
@@ -236,12 +241,11 @@ sentry_sdk.init(
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  customMetricsOnboarding: getPythonMetricsOnboarding({
-    installSnippet: getInstallSnippet(),
-  }),
+
   performanceOnboarding,
   crashReportOnboarding: crashReportOnboardingPython,
-  featureFlagOnboarding: featureFlagOnboarding,
+  featureFlagOnboarding,
+  feedbackOnboardingJsLoader,
 };
 
 export default docs;

@@ -83,7 +83,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
   }, [hasTransactions, hasSessions]);
 
   const onRetryProjects = useCallback(() => {
-    fetchOrganizationDetails(api, params.orgId, true, false);
+    fetchOrganizationDetails(api, params.orgId!, true, false);
   }, [api, params.orgId]);
 
   const handleSearch = useCallback(
@@ -102,7 +102,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
   const tagValueLoader = useCallback(
     (key: string, search: string) => {
       return fetchTagValues({
-        api: api,
+        api,
         orgSlug: organization.slug,
         tagKey: key,
         search,
@@ -237,25 +237,26 @@ export default function ProjectDetail({router, location, organization}: Props) {
                 {isProjectStabilized && (
                   <Fragment>
                     {visibleCharts.map((id, index) => (
-                      <ProjectCharts
-                        location={location}
-                        organization={organization}
-                        router={router}
-                        key={`project-charts-${id}`}
-                        chartId={id}
-                        chartIndex={index}
-                        projectId={project?.id}
-                        hasSessions={hasSessions}
-                        hasTransactions={!!hasTransactions}
-                        visibleCharts={visibleCharts}
-                        query={query}
-                        project={project}
-                      />
+                      <ErrorBoundary mini key={`project-charts-${id}`}>
+                        <ProjectCharts
+                          location={location}
+                          organization={organization}
+                          router={router}
+                          chartId={id}
+                          chartIndex={index}
+                          projectId={project?.id}
+                          hasSessions={hasSessions}
+                          hasTransactions={!!hasTransactions}
+                          visibleCharts={visibleCharts}
+                          query={query}
+                          project={project}
+                        />
+                      </ErrorBoundary>
                     ))}
                     <ProjectIssues
                       organization={organization}
                       location={location}
-                      projectId={selection.projects[0]}
+                      projectId={selection.projects[0]!}
                       query={query}
                       api={api}
                     />
@@ -267,14 +268,14 @@ export default function ProjectDetail({router, location, organization}: Props) {
                 <Feature features="incidents" organization={organization}>
                   <ProjectLatestAlerts
                     organization={organization}
-                    projectSlug={params.projectId}
+                    projectSlug={params.projectId!}
                     location={location}
                     isProjectStabilized={isProjectStabilized}
                   />
                 </Feature>
                 <ProjectLatestReleases
                   organization={organization}
-                  projectSlug={params.projectId}
+                  projectSlug={params.projectId!}
                   location={location}
                   isProjectStabilized={isProjectStabilized}
                   project={project}

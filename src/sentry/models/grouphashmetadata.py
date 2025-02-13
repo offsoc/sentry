@@ -50,7 +50,13 @@ class GroupHashMetadata(Model):
     grouphash = models.OneToOneField(
         "sentry.GroupHash", related_name="_metadata", on_delete=models.CASCADE
     )
-    date_added = models.DateTimeField(default=timezone.now)
+    # When the grouphash was created. Will be null for grouphashes created before we started
+    # collecting metadata.
+    date_added = models.DateTimeField(default=timezone.now, null=True)
+    # The platform of the event when generated the metadata. Likely different than the project
+    # platform, as event platforms are normalized to a handful of known values, whereas project
+    # platforms are all over the place.
+    platform = models.CharField(null=True)
 
     # HASHING
 
@@ -78,7 +84,7 @@ class GroupHashMetadata(Model):
     seer_model = models.CharField(null=True)
     # The `GroupHash` record representing the match Seer sent back as a match (if any)
     seer_matched_grouphash = FlexibleForeignKey(
-        "sentry.GroupHash", related_name="seer_matchees", on_delete=models.DO_NOTHING, null=True
+        "sentry.GroupHash", related_name="seer_matchees", on_delete=models.SET_NULL, null=True
     )
     # The similarity between this hash's stacktrace and the parent (matched) hash's stacktrace
     seer_match_distance = models.FloatField(null=True)

@@ -36,7 +36,9 @@ from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.users.services.user.service import user_service
+from sentry.workflow_engine.migration_helpers.alert_rule import dual_delete_migrated_alert_rule
 
 
 def fetch_alert_rule(request: Request, organization, alert_rule):
@@ -82,7 +84,11 @@ def update_alert_rule(request: Request, organization, alert_rule):
         partial=True,
     )
     if serializer.is_valid():
-        trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
+        try:
+            trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
+        except SentryAppBaseError as e:
+            return e.response_from_exception()
+
         if get_slack_actions_with_async_lookups(organization, request.user, data):
             # need to kick off an async job for Slack
             client = RedisRuleStatus()
@@ -105,6 +111,10 @@ def update_alert_rule(request: Request, organization, alert_rule):
 
 def remove_alert_rule(request: Request, organization, alert_rule):
     try:
+        # NOTE: we want to run the dual delete regardless of whether the user is flagged into dual writes:
+        # the user could be removed from the dual write flag for whatever reason, and we need to make sure
+        # that the extra table data is deleted. If the rows don't exist, we'll exit early.
+        dual_delete_migrated_alert_rule(alert_rule=alert_rule, user=request.user)
         delete_alert_rule(alert_rule, user=request.user, ip_address=request.META.get("REMOTE_ADDR"))
         return Response(status=status.HTTP_204_NO_CONTENT)
     except AlreadyDeletedError:
@@ -213,17 +223,6 @@ Metric alert rule trigger actions follow the following structure:
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
     )
     thresholdPeriod = serializers.IntegerField(required=False, default=1, min_value=1, max_value=20)
-    monitorType = serializers.IntegerField(
-        required=False,
-        min_value=0,
-        help_text="Monitor type represents whether the alert rule is actively being monitored or is monitored given a specific activation condition.",
-    )
-    activationCondition = serializers.IntegerField(
-        required=False,
-        allow_null=True,
-        min_value=0,
-        help_text="Optional int that represents a trigger condition for when to start monitoring",
-    )
 
 
 @extend_schema(tags=["Alerts"])

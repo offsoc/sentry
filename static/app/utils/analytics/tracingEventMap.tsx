@@ -1,4 +1,7 @@
+import type {Confidence} from 'sentry/types/organization';
 import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {TraceWaterFallSource} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import type {TraceDrawerActionKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 export type TracingEventParameters = {
   'trace.configurations_docs_link_clicked': {
@@ -7,20 +10,33 @@ export type TracingEventParameters = {
   'trace.explorer.metadata': {
     columns: string[];
     columns_count: number;
-    query_status: 'success' | 'error';
+    confidences: Confidence[];
+    dataset: string;
+    has_exceeded_performance_usage_limit: boolean | null;
+    query_status: 'success' | 'error' | 'pending';
     result_length: number;
     result_missing_root: number;
     result_mode: 'trace samples' | 'span samples' | 'aggregates';
+    title: string;
     user_queries: string;
     user_queries_count: number;
     visualizes: Visualize[];
     visualizes_count: number;
   };
+  'trace.load.empty_state': {
+    source: TraceWaterFallSource;
+  };
+  'trace.load.error_state': {
+    source: TraceWaterFallSource;
+  };
   'trace.metadata': {
+    has_exceeded_performance_usage_limit: boolean | null;
     num_nodes: number;
     num_root_children: number;
     project_platforms: string[];
+    referrer: string | null;
     shape: string;
+    source: TraceWaterFallSource;
     trace_duration_seconds: number;
   };
   'trace.preferences.autogrouping_change': {
@@ -41,6 +57,11 @@ export type TracingEventParameters = {
   };
   'trace.quality.quota_exceeded.learn_more_clicked': {
     traceType: string;
+  };
+  'trace.trace_drawer_explore_search': {
+    key: string;
+    kind: TraceDrawerActionKind;
+    value: string | number;
   };
   'trace.trace_layout.change': {
     layout: string;
@@ -91,6 +112,10 @@ export type TracingEventParameters = {
     source: 'trace explorer' | 'new explore';
   };
   'trace_explorer.remove_span_condition': {};
+  'trace_explorer.save_as': {
+    save_type: 'alert' | 'dashboard';
+    ui_source: 'toolbar' | 'chart';
+  };
   'trace_explorer.search_failure': {
     error: string;
     queries: string[];
@@ -115,9 +140,12 @@ export type TracingEventKey = keyof TracingEventParameters;
 
 export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.metadata': 'Trace Load Metadata',
+  'trace.load.empty_state': 'Trace Load Empty State',
+  'trace.load.error_state': 'Trace Load Error State',
   'trace.explorer.metadata': 'Improved Trace Explorer Pageload Metadata',
   'trace.trace_layout.change': 'Changed Trace Layout',
   'trace.trace_layout.drawer_minimize': 'Minimized Trace Drawer',
+  'trace.trace_drawer_explore_search': 'Searched Trace Explorer',
   'trace.trace_layout.show_in_view': 'Clicked Show in View Action',
   'trace.trace_layout.view_event_json': 'Clicked View Event JSON Action',
   'trace.trace_layout.tab_pin': 'Pinned Trace Tab',
@@ -145,7 +173,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.trace_layout.view_in_insight_module': 'View Trace Span in Insight Module',
   'trace.trace_layout.search_match_navigate': 'Navigate Trace Search Matches',
   'trace.trace_layout.view_similar_spans': 'View Similar Spans in Trace',
-  'trace.trace_layout.view_span_summary': 'View Span Summary in Trace',
+  'trace.trace_layout.view_span_summary': 'More Samples in Trace',
   'trace.trace_layout.span_row_click': 'Clicked Span Row in Trace',
   'trace_explorer.add_span_condition': 'Trace Explorer: Add Another Span',
   'trace_explorer.open_in_issues': 'Trace Explorer: Open Trace in Issues',
@@ -159,4 +187,5 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.preferences.autogrouping_change': 'Changed Autogrouping Preference',
   'trace.preferences.missing_instrumentation_change':
     'Changed Missing Instrumentation Preference',
+  'trace_explorer.save_as': 'Trace Explorer: Save As',
 };

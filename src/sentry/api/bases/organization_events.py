@@ -91,9 +91,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
     def get_field_list(self, organization: Organization, request: Request) -> list[str]:
         return [field for field in request.GET.getlist("field")[:] if not is_equation(field)]
 
-    def get_team_ids(self, request: Request, organization: Organization) -> list[int]:
-        return [team.id for team in self.get_teams(request, organization)]
-
     def get_teams(self, request: Request, organization: Organization) -> list[Team]:
         if not request.user:
             return []
@@ -288,10 +285,11 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         return decision
 
     def handle_unit_meta(
-        self, meta: dict[str, str]
+        self, result_meta: dict[str, str]
     ) -> tuple[dict[str, str], dict[str, str | None]]:
         units: dict[str, str | None] = {}
-        for key, value in meta.items():
+        meta: dict[str, str] = result_meta.copy()
+        for key, value in result_meta.items():
             if value in SIZE_UNITS:
                 units[key] = value
                 meta[key] = "size"
@@ -352,6 +350,11 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             if not data:
                 return {"data": [], "meta": meta}
             if "confidence" in results:
+                meta["accuracy"] = {
+                    "confidence": results["confidence"],
+                    # TODO: add sampleCount and rampleRate here
+                }
+                # Confidence being a top level key is going to be deprecated in favour of confidence being in the meta
                 return {"data": data, "meta": meta, "confidence": results["confidence"]}
             return {"data": data, "meta": meta}
 
@@ -367,8 +370,6 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         first_row = results[0]
 
-        # TODO(mark) move all of this result formatting into discover.query()
-        # once those APIs are used across the application.
         if "transaction.status" in first_row:
             for row in results:
                 if "transaction.status" in row and type(row["transaction.status"]) is int:
@@ -497,6 +498,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             allow_partial_buckets,
                             zerofill_results=zerofill_results,
                             dataset=dataset,
+                            transform_alias_to_input_format=transform_alias_to_input_format,
                         )
                         if request.query_params.get("useOnDemandMetrics") == "true":
                             results[key]["isMetricsExtractedData"] = self._query_if_extracted_data(
@@ -611,6 +613,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             )
             if is_equation(query_column):
                 equations += 1
+            # TODO: confidence is being split up in the serializer right now, need to move that here once its deprecated
+            if "confidence" in result[columns[index]]:
+                meta["accuracy"] = {"confidence": result[columns[index]]["confidence"]}
             result[columns[index]]["meta"] = meta
         # Set order if multi-axis + top events
         if "order" in event_result.data:

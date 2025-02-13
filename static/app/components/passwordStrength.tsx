@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+// @ts-expect-error TS(7016): Could not find a declaration file for module 'zxcv... Remove this comment to see the full error message
 import zxcvbn from 'zxcvbn';
 
 import {tct} from 'sentry/locale';
@@ -46,11 +47,10 @@ export function PasswordStrength({
     return null;
   }
 
-  const {score} = result;
-  const percent = Math.round(((score + 1) / MAX_SCORE) * 100);
+  const percent = Math.round(((result.score + 1) / MAX_SCORE) * 100);
 
   const styles = css`
-    background: ${colors[score]};
+    background: ${colors[result.score]};
     width: ${percent}%;
   `;
 
@@ -58,7 +58,7 @@ export function PasswordStrength({
     <Fragment>
       <StrengthProgress
         role="progressbar"
-        aria-valuenow={score}
+        aria-valuenow={result.score}
         aria-valuemin={0}
         aria-valuemax={100}
       >
@@ -66,7 +66,7 @@ export function PasswordStrength({
       </StrengthProgress>
       <StrengthLabel>
         {tct('Strength: [textScore]', {
-          textScore: <ScoreText>{labels[score]}</ScoreText>,
+          textScore: <ScoreText>{labels[result.score]}</ScoreText>,
         })}
       </StrengthLabel>
     </Fragment>

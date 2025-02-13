@@ -47,6 +47,11 @@ describe('EventTraceView', () => {
 
   it('renders a trace', async () => {
     MockApiClient.addMockResponse({
+      url: '/subscriptions/org-slug/',
+      method: 'GET',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/events-trace-meta/${traceId}/`,
       body: {
@@ -57,6 +62,8 @@ describe('EventTraceView', () => {
         transaction_child_count_map: new Array(20)
           .fill(0)
           .map((_, i) => [{'transaction.id': i.toString(), count: 1}]),
+        span_count: 0,
+        span_count_map: {},
       },
     });
     MockApiClient.addMockResponse({
@@ -151,7 +158,7 @@ describe('EventTraceView', () => {
     render(
       <EventTraceView group={perfGroup} event={perfEvent} organization={organization} />
     );
-    expect(await screen.findByText('Trace')).toBeInTheDocument();
+    expect(await screen.findByText('Trace Preview')).toBeInTheDocument();
     expect(
       await screen.findByRole('link', {name: 'View Full Trace'})
     ).toBeInTheDocument();
@@ -162,6 +169,11 @@ describe('EventTraceView', () => {
 
   it('does not render the trace preview if it has no transactions', async () => {
     MockApiClient.addMockResponse({
+      url: '/subscriptions/org-slug/',
+      method: 'GET',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/events-trace-meta/${traceId}/`,
       body: {
@@ -170,6 +182,8 @@ describe('EventTraceView', () => {
         projects: 0,
         transactions: 0,
         transaction_child_count_map: [{'transaction.id': '1', count: 1}],
+        span_count: 0,
+        span_count_map: {},
       },
     });
     MockApiClient.addMockResponse({
@@ -182,6 +196,6 @@ describe('EventTraceView', () => {
 
     render(<EventTraceView group={group} event={event} organization={organization} />);
 
-    expect(await screen.findByText('Trace')).toBeInTheDocument();
+    expect(await screen.findByText('Trace Preview')).toBeInTheDocument();
   });
 });

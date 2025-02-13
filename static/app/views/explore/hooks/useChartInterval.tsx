@@ -27,7 +27,7 @@ interface Options {
 export function useChartInterval(): [
   string,
   (interval: string) => void,
-  intervalOptions: {label: string; value: string}[],
+  intervalOptions: Array<{label: string; value: string}>,
 ] {
   const location = useLocation();
   const navigate = useNavigate();
@@ -44,7 +44,7 @@ function useChartIntervalImpl({
 }: Options): [
   string,
   (interval: string) => void,
-  intervalOptions: {label: string; value: string}[],
+  intervalOptions: Array<{label: string; value: string}>,
 ] {
   const {datetime} = pagefilters.selection;
   const intervalOptions = useMemo(
@@ -58,7 +58,8 @@ function useChartIntervalImpl({
     return decodedInterval &&
       intervalOptions.some(option => option.value === decodedInterval)
       ? decodedInterval
-      : intervalOptions[0].value;
+      : // Default to the second option so we're not defaulting to the smallest option
+        intervalOptions[1]!.value;
   }, [location.query.interval, intervalOptions]);
 
   const setInterval = useCallback(

@@ -10,6 +10,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {VITAL_DESCRIPTIONS} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {
   ProjectScore,
@@ -20,7 +21,6 @@ import {
   scoreToStatus,
   STATUS_TEXT,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
-import {vitalDescription} from 'sentry/views/performance/vitalDetail/utils';
 
 type Props = {
   onClick?: (webVital: WebVitals) => void;
@@ -30,7 +30,7 @@ type Props = {
   transaction?: string;
 };
 
-const WEB_VITALS_METERS_CONFIG = {
+export const WEB_VITALS_METERS_CONFIG = {
   lcp: {
     name: t('Largest Contentful Paint'),
     formatter: (value: number) => getFormattedDuration(value / 1000),
@@ -68,7 +68,7 @@ export default function WebVitalMeters({
   const webVitalsConfig = WEB_VITALS_METERS_CONFIG;
 
   const webVitals = Object.keys(webVitalsConfig) as WebVitals[];
-  const colors = theme.charts.getColorPalette(3);
+  const colors = theme.charts.getColorPalette(3) ?? [];
 
   const renderVitals = () => {
     return webVitals.map((webVital, index) => {
@@ -87,7 +87,7 @@ export default function WebVitalMeters({
           showTooltip={showTooltip}
           score={score}
           meterValue={meterValue}
-          color={colors[index]}
+          color={colors[index]!}
           onClick={onClick}
         />
       );
@@ -130,6 +130,10 @@ export function VitalMeter({
       <NoValue />
     );
 
+  const webVitalKey = `measurements.${webVital}`;
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  const {shortDescription} = VITAL_DESCRIPTIONS[webVitalKey];
+
   const headerText = webVitalsConfig[webVital].name;
   const meterBody = (
     <Fragment>
@@ -140,13 +144,7 @@ export function VitalMeter({
             size="xs"
             title={
               <span>
-                {tct(
-                  `The p75 [webVital] value and aggregate [webVital] score of your selected project(s).
-                      Scores and values may share some (but not perfect) correlation.`,
-                  {
-                    webVital: webVital.toUpperCase(),
-                  }
-                )}
+                {shortDescription}
                 <br />
                 <ExternalLink href={`${MODULE_DOC_LINK}#performance-score`}>
                   {t('Find out how performance scores are calculated here.')}
@@ -280,7 +278,9 @@ function MeterBarFooter({score}: {score: number | undefined}) {
   );
 }
 
-const MeterBarFooterContainer = styled('div')<{status: string}>`
+const MeterBarFooterContainer = styled('div')<{
+  status: keyof typeof PERFORMANCE_SCORE_COLORS;
+}>`
   color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
@@ -335,13 +335,13 @@ export function VitalPill({webVital, score, meterValue}: VitalPillProps) {
       <NoValue />
     );
 
-  const tooltipText = vitalDescription[`measurements.${webVital}`];
+  const tooltipText = VITAL_DESCRIPTIONS[`measurements.${webVital}`];
 
   return (
     <VitalPillContainer>
-      <Tooltip title={tooltipText}>
+      <Tooltip title={tooltipText?.shortDescription}>
         <VitalPillName status={status}>
-          {`${webVital ? webVital.toUpperCase() : ''} (${STATUS_TEXT[status] ?? 'N/A'})`}
+          {`${webVital ? webVital.toUpperCase() : ''} (${status === 'none' ? 'N/A' : STATUS_TEXT[status]})`}
         </VitalPillName>
       </Tooltip>
       <VitalPillValue>{formattedMeterValueText}</VitalPillValue>
@@ -354,9 +354,10 @@ const VitalPillContainer = styled('div')`
   flex-direction: row;
   width: 100%;
   height: 30px;
+  margin-bottom: ${space(1)};
 `;
 
-const VitalPillName = styled('div')<{status: string}>`
+const VitalPillName = styled('div')<{status: keyof typeof PERFORMANCE_SCORE_COLORS}>`
   display: flex;
   align-items: center;
   position: relative;
