@@ -108,9 +108,12 @@ class GrantExchanger:
                 .get(code=self.code)
             )
         except ApiGrant.DoesNotExist:
-            raise SentryAppIntegratorError(
+            raise SentryAppSentryError(
                 "Could not find grant for given code",
-                webhook_context={"code": self.code, "installation_uuid": self.install.uuid},
+                webhook_context={
+                    "code": self.code[:SENSITIVE_CHARACTER_LIMIT],
+                    "installation_uuid": self.install.uuid,
+                },
                 status_code=401,
             )
 

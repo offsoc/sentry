@@ -80,7 +80,7 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                 exc_info=e,
                 extra={
                     "user_id": request.user.id,
-                    "sentry_app_installation_id": installation.id,
+                    "sentry_app_installation_id": installation.uuid,
                     "organization_id": installation.organization_id,
                     "sentry_app_id": installation.sentry_app.id,
                 },
