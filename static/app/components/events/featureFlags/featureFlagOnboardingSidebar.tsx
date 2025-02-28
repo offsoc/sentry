@@ -321,7 +321,7 @@ function OnboardingContent({
 
   const doesNotSupportFeatureFlags =
     !currentProject.platform ||
-    !featureFlagOnboardingPlatforms.concat('other').includes(currentProject.platform);
+    !featureFlagOnboardingPlatforms.concat('other').includes(currentPlatform.id);
 
   const defaultMessage = (
     <Fragment>
@@ -347,7 +347,7 @@ function OnboardingContent({
     </Fragment>
   );
 
-  if (currentProject.platform === 'other') {
+  if (currentPlatform.id === 'other') {
     return (
       <Fragment>
         {radioButtons}
