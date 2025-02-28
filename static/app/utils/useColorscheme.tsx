@@ -12,18 +12,18 @@ function setFaviconTheme(theme: 'dark' | 'light'): void {
     return;
   }
 
-  const faviconNode = document.querySelector<HTMLLinkElement>(
-    '[rel="icon"][type="image/png"]'
-  );
+  const faviconNodes = document.querySelectorAll<HTMLLinkElement>('[rel="icon"]');
 
-  if (faviconNode === null) {
+  if (faviconNodes.length === 0) {
     return;
   }
 
-  const path = faviconNode.href.split('/sentry/')[0];
-  const iconName = theme === 'dark' ? 'favicon-dark' : 'favicon';
-
-  faviconNode.href = `${path}/sentry/images/${iconName}.png`;
+  for (const faviconNode of faviconNodes) {
+    const path = faviconNode.href.split('/sentry/')[0];
+    const extname = faviconNode.href.split('.').pop();
+    const iconName = theme === 'dark' ? 'favicon-dark' : 'favicon';
+    faviconNode.href = `${path}/sentry/images/${iconName}.${extname}`;
+  }
 }
 
 export function useColorscheme() {
