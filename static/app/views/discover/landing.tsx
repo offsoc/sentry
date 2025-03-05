@@ -3,15 +3,15 @@ import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Alert} from 'sentry/components/core/alert';
+import {Switch} from 'sentry/components/core/switch';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -42,7 +42,7 @@ const SORT_OPTIONS: Array<SelectValue<string>> = [
 
 type Props = {
   organization: Organization;
-} & RouteComponentProps<{}, {}> &
+} & RouteComponentProps &
   DeprecatedAsyncComponent['props'];
 
 type State = {
@@ -201,10 +201,10 @@ class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
         <PrebuiltSwitch>
           Show Prebuilt
           <Switch
-            isActive={renderPrebuilt}
-            isDisabled={renderPrebuilt && (savedQueries ?? []).length === 0}
+            checked={renderPrebuilt}
+            disabled={renderPrebuilt && (savedQueries ?? []).length === 0}
             size="lg"
-            toggle={this.togglePrebuilt}
+            onChange={this.togglePrebuilt}
           />
         </PrebuiltSwitch>
         <CompactSelect
@@ -230,7 +230,9 @@ class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
   renderNoAccess() {
     return (
       <Layout.Page withPadding>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        <Alert.Container>
+          <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        </Alert.Container>
       </Layout.Page>
     );
   }

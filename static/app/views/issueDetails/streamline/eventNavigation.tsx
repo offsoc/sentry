@@ -32,6 +32,13 @@ interface IssueEventNavigationProps {
   group: Group;
 }
 
+const LIST_VIEW_TABS = new Set([
+  Tab.EVENTS,
+  Tab.OPEN_PERIODS,
+  Tab.CHECK_INS,
+  Tab.UPTIME_CHECKS,
+]);
+
 export function IssueEventNavigation({event, group}: IssueEventNavigationProps) {
   const organization = useOrganization();
   const {baseUrl, currentTab} = useGroupDetailsRoute();
@@ -77,9 +84,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     [Tab.USER_FEEDBACK]: t('Feedback'),
   };
 
-  const isListView = [Tab.UPTIME_CHECKS, Tab.EVENTS, Tab.OPEN_PERIODS].includes(
-    currentTab
-  );
+  const isListView = LIST_VIEW_TABS.has(currentTab);
 
   return (
     <EventNavigationWrapper role="navigation">
@@ -196,7 +201,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 analyticsEventKey="issue_details.all_events_clicked"
                 analyticsEventName="Issue Details: All Events Clicked"
               >
-                {t('All %s', issueTypeConfig.customCopy.eventUnits)}
+                {t('View More %s', issueTypeConfig.customCopy.eventUnits)}
               </LinkButton>
             )}
             {issueTypeConfig.pages.openPeriods.enabled && (
@@ -209,10 +214,23 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 analyticsEventKey="issue_details.all_open_periods_clicked"
                 analyticsEventName="Issue Details: All Open Periods Clicked"
               >
-                {t('All Open Periods')}
+                {t('View More Open Periods')}
               </LinkButton>
             )}
             {issueTypeConfig.pages.checkIns.enabled && (
+              <LinkButton
+                to={{
+                  pathname: `${baseUrl}${TabPaths[Tab.CHECK_INS]}`,
+                  query: location.query,
+                }}
+                size="xs"
+                analyticsEventKey="issue_details.all_checks_ins_clicked"
+                analyticsEventName="Issue Details: All Checks-Ins Clicked"
+              >
+                {t('View More Check-Ins')}
+              </LinkButton>
+            )}
+            {issueTypeConfig.pages.uptimeChecks.enabled && (
               <LinkButton
                 to={{
                   pathname: `${baseUrl}${TabPaths[Tab.UPTIME_CHECKS]}`,
@@ -222,7 +240,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 analyticsEventKey="issue_details.all_uptime_checks_clicked"
                 analyticsEventName="Issue Details: All Uptime Checks Clicked"
               >
-                {t('All Uptime Checks')}
+                {t('View More Uptime Checks')}
               </LinkButton>
             )}
           </Fragment>
@@ -238,7 +256,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 analyticsEventKey="issue_details.discover_clicked"
                 analyticsEventName="Issue Details: Discover Clicked"
               >
-                {t('Discover')}
+                {t('Open in Discover')}
               </LinkButton>
             )}
             <LinkButton

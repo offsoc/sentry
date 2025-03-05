@@ -16,6 +16,18 @@ describe('latencyChart', () => {
       method: 'GET',
       body: {
         data: [[1739378162, [{count: 1}]]],
+        meta: {
+          fields: {
+            'avg(span.duration)': 'duration',
+            'avg(messaging.message.receive.latency)': 'duration',
+            'spm()': 'rate',
+          },
+          units: {
+            'avg(span.duration)': 'millisecond',
+            'avg(messaging.message.receive.latency)': 'millisecond',
+            'spm()': '1/second',
+          },
+        },
       },
     });
   });
@@ -24,7 +36,7 @@ describe('latencyChart', () => {
       <LatencyChart destination="events" referrer={Referrer.QUEUES_SUMMARY_CHARTS} />,
       {organization}
     );
-    screen.getByText('Avg Latency');
+    screen.getByText('Average Duration');
     expect(eventsStatsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({

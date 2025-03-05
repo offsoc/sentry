@@ -1,9 +1,10 @@
 import {setForceHide} from 'sentry/actionCreators/guides';
 import ConfigStore from 'sentry/stores/configStore';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 
 import {demoEmailModal, demoSignupModal} from '../../actionCreators/modal';
 
-const SIGN_UP_MODAL_DELAY = 30_000;
+const SIGN_UP_MODAL_DELAY = 2 * 60 * 1000;
 
 const DEMO_MODE_EMAIL_KEY = 'demo-mode:email';
 
@@ -31,7 +32,7 @@ export function urlAttachQueryParams(url: string, params: URLSearchParams): stri
 }
 
 export function isDemoModeEnabled(): boolean {
-  return ConfigStore.get('demoMode');
+  return ConfigStore.get('demoMode') && !isActiveSuperuser();
 }
 
 export function openDemoSignupModal() {

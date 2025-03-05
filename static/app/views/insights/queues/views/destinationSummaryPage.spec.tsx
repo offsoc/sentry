@@ -69,6 +69,12 @@ describe('destinationSummaryPage', () => {
       method: 'GET',
       body: {
         data: [[1699907700, [{count: 0.2}]]],
+        meta: {
+          fields: {'avg(span.duration)': 'duration'},
+          units: {
+            'avg(span.duration)': 'millisecond',
+          },
+        },
       },
     });
   });
@@ -77,7 +83,7 @@ describe('destinationSummaryPage', () => {
     render(<PageWithProviders />, {organization});
     await screen.findByRole('table', {name: 'Transactions'});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
-    screen.getByText('Avg Latency');
+    screen.getByText('Average Duration');
     screen.getByText('Published vs Processed');
     expect(eventsStatsMock).toHaveBeenCalled();
     expect(eventsMock).toHaveBeenCalled();

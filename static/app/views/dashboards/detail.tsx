@@ -115,7 +115,7 @@ type RouteParams = {
   widgetIndex?: number;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<RouteParams> & {
   api: Client;
   dashboard: DashboardDetails;
   dashboards: DashboardListItem[];
@@ -303,6 +303,8 @@ class DashboardDetail extends Component<Props, State> {
       totalIssuesCount,
       seriesResultsType,
       confidence,
+      sampleCount,
+      isSampled,
     } = this.state;
     if (isWidgetViewerPath(location.pathname)) {
       const widget =
@@ -369,6 +371,8 @@ class DashboardDetail extends Component<Props, State> {
             }
           },
           confidence,
+          sampleCount,
+          isSampled,
         });
         trackAnalytics('dashboards_views.widget_viewer.open', {
           organization,

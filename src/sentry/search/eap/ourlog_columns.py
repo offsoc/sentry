@@ -31,7 +31,7 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
         ResolvedColumn(
             public_alias="log.severity_number",
             internal_name="sentry.severity_number",
-            search_type="number",
+            search_type="integer",
         ),
         ResolvedColumn(
             public_alias="log.severity_text",
@@ -73,7 +73,8 @@ OURLOG_VIRTUAL_CONTEXTS = {
 
 
 OURLOG_DEFINITIONS = ColumnDefinitions(
-    functions={},
+    aggregates={},
+    formulas={},
     columns=OURLOG_ATTRIBUTE_DEFINITIONS,
     contexts=OURLOG_VIRTUAL_CONTEXTS,
     trace_item_type=TraceItemType.TRACE_ITEM_TYPE_LOG,

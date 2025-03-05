@@ -2,11 +2,12 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Alert} from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
 import type {SmartSearchBarProps} from 'sentry/components/deprecatedSmartSearchBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -226,9 +227,11 @@ function TransactionsTab({location, selection}: TabbedContentProps) {
         />
       </SearchbarContainer>
       {transactionsError && (
-        <Alert type="error" showIcon>
-          {transactionsError}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error" showIcon>
+            {transactionsError}
+          </Alert>
+        </Alert.Container>
       )}
       <ProfileEventsTable
         columns={fields.slice()}
@@ -326,9 +329,11 @@ function ProfilingOnboardingCTA() {
 }
 
 function ProfilingContentPageHeader() {
+  const prefersStackedNav = usePrefersStackedNav();
+
   return (
-    <StyledLayoutHeader>
-      <StyledHeaderContent>
+    <StyledLayoutHeader unified={prefersStackedNav}>
+      <StyledHeaderContent unified={prefersStackedNav}>
         <Layout.Title>
           {t('Profiling')}
           <PageHeadingQuestionTooltip

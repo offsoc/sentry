@@ -146,7 +146,6 @@ export function IssueCronCheckTimeline({group}: {group: Group}) {
           ))}
       </TimelineLegend>
       <IssueGridLineOverlay
-        stickyCursor
         allowZoom
         showCursor
         timeWindowConfig={timeWindowConfig}
@@ -222,6 +221,7 @@ const TimelineLegendText = styled('div')`
 const TimelineContainer = styled('div')`
   position: absolute;
   top: 36px;
+  width: 100%;
 `;
 
 const EnvironmentLabel = styled(Tooltip)`
@@ -231,6 +231,7 @@ const EnvironmentLabel = styled(Tooltip)`
   font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   color: ${p => p.theme.subText};
+  white-space: nowrap;
 `;
 
 const IssueGridLineLabels = styled(GridLineLabels)<{envCount: number}>`

@@ -1,4 +1,4 @@
-import type {ChangeEvent, RefObject} from 'react';
+import type {ChangeEvent, FocusEvent, RefObject} from 'react';
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -14,12 +14,17 @@ import type {
 } from 'sentry/components/arithmeticBuilder/token';
 import {TokenKind} from 'sentry/components/arithmeticBuilder/token';
 import {nextTokenKeyOfKind} from 'sentry/components/arithmeticBuilder/tokenizer';
+import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
-import {focusNext, focusPrev} from 'sentry/components/tokenizedInput/grid/utils';
+import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {ComboBox} from 'sentry/components/tokenizedInput/token/comboBox';
+import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 
 interface ArithmeticTokenFunctionProps {
   item: Node<Token>;
@@ -46,49 +51,50 @@ export function ArithmeticTokenFunction({
 
   const isFocused = item.key === state.selectionManager.focusedKey;
 
+  const showUnfocusedState = !state.selectionManager.isFocused || !isFocused;
+
   return (
     <FunctionWrapper
       {...rowProps}
+      ref={ref}
       tabIndex={isFocused ? 0 : -1}
       aria-label={`${token.function}(${attribute.format()})`}
       aria-invalid={false}
       state={'valid'}
-      ref={ref}
     >
       <FunctionGridCell {...gridCellProps}>{token.function}</FunctionGridCell>
       {'('}
       <BaseGridCell {...gridCellProps}>
         <InternalInput
-          isFocused={isFocused}
           item={item}
           state={state}
-          functionToken={token}
-          token={attribute}
+          token={token}
+          attribute={attribute}
           rowRef={ref}
         />
+        {showUnfocusedState && (
+          // Inject a floating span with the attribute name so when it's
+          // not focused, it doesn't look like the placeholder text
+          <FunctionArgumentOverlay>{attribute.attribute}</FunctionArgumentOverlay>
+        )}
       </BaseGridCell>
       {')'}
+      <BaseGridCell {...gridCellProps}>
+        <DeleteFunction token={token} />
+      </BaseGridCell>
     </FunctionWrapper>
   );
 }
 
 interface InternalInputProps {
-  functionToken: TokenFunction;
-  isFocused: boolean;
+  attribute: TokenAttribute;
   item: Node<Token>;
   rowRef: RefObject<HTMLDivElement>;
   state: ListState<Token>;
-  token: TokenAttribute;
+  token: TokenFunction;
 }
 
-function InternalInput({
-  functionToken,
-  isFocused,
-  item,
-  state,
-  token,
-  rowRef,
-}: InternalInputProps) {
+function InternalInput({token, item, state, attribute, rowRef}: InternalInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState('');
   const [_selectionIndex, setSelectionIndex] = useState(0); // TODO
@@ -105,14 +111,10 @@ function InternalInput({
     updateSelectionIndex();
   }, [updateSelectionIndex]);
 
-  const {dispatch} = useArithmeticBuilder();
-
-  const allowedAttributes: string[] = useMemo(() => {
-    return ['span.duration', 'span.self_time'];
-  }, []);
+  const {dispatch, functionArguments} = useArithmeticBuilder();
 
   const items = useAttributeItems({
-    allowedAttributes,
+    allowedAttributes: functionArguments,
     filterValue,
   });
 
@@ -121,54 +123,45 @@ function InternalInput({
     [rowRef]
   );
 
-  const validateAndUpdateArgument = useCallback(
-    (value: string) => {
-      // If it's not a validate argument, we fall back
-      // to using the what was originally in the token
-      const text = allowedAttributes.includes(value)
-        ? `${functionToken.function}(${value})`
-        : `${functionToken.function}(${token.attribute})`;
-
-      dispatch({
-        text,
-        type: 'REPLACE_TOKEN',
-        token: functionToken,
-        focusOverride: {
-          itemKey: nextTokenKeyOfKind(state, functionToken, TokenKind.FREE_TEXT),
-        },
-      });
-    },
-    [allowedAttributes, dispatch, functionToken, token, state]
-  );
-
   const onClick = useCallback(() => {
     updateSelectionIndex();
   }, [updateSelectionIndex]);
 
-  const onInputBlur = useCallback(
-    (value: string) => {
-      validateAndUpdateArgument(value);
-    },
-    [validateAndUpdateArgument]
-  );
+  const onInputBlur = useCallback(() => {
+    resetInputValue();
+  }, [resetInputValue]);
 
   const onInputChange = useCallback(
     (evt: ChangeEvent<HTMLInputElement>) => {
       setInputValue(evt.target.value);
+      setSelectionIndex(evt.target.selectionStart ?? 0);
     },
     [setInputValue]
   );
 
-  const onInputCommit = useCallback(
-    (value: string) => {
-      validateAndUpdateArgument(value);
-    },
-    [validateAndUpdateArgument]
-  );
+  const onInputCommit = useCallback(() => {
+    const value = inputValue.trim() || attribute.attribute;
+    dispatch({
+      text: `${token.function}(${value})`,
+      type: 'REPLACE_TOKEN',
+      token,
+      focusOverride: {
+        itemKey: nextTokenKeyOfKind(state, token, TokenKind.FREE_TEXT),
+      },
+    });
+    resetInputValue();
+  }, [dispatch, state, token, attribute, inputValue, resetInputValue]);
 
   const onInputEscape = useCallback(() => {
-    validateAndUpdateArgument(inputValue);
-  }, [inputValue, validateAndUpdateArgument]);
+    resetInputValue();
+  }, [resetInputValue]);
+
+  const onInputFocus = useCallback(
+    (_evt: FocusEvent<HTMLInputElement>) => {
+      resetInputValue();
+    },
+    [resetInputValue]
+  );
 
   const onKeyDownCapture = useCallback(
     (evt: React.KeyboardEvent<HTMLInputElement>) => {
@@ -178,7 +171,7 @@ function InternalInput({
         evt.currentTarget.selectionEnd === 0 &&
         evt.key === 'ArrowLeft'
       ) {
-        focusPrev(state, item);
+        focusTarget(state, state.collection.getKeyBefore(item.key));
         return;
       }
 
@@ -188,7 +181,7 @@ function InternalInput({
         evt.currentTarget.selectionEnd === evt.currentTarget.value.length &&
         evt.key === 'ArrowRight'
       ) {
-        focusNext(state, item);
+        focusTarget(state, state.collection.getKeyAfter(item.key));
         return;
       }
     },
@@ -205,9 +198,11 @@ function InternalInput({
         evt.currentTarget.selectionEnd === 0 &&
         evt.key === 'Backspace'
       ) {
+        const itemKey = state.collection.getKeyBefore(item.key);
         dispatch({
           type: 'DELETE_TOKEN',
-          token: functionToken,
+          token,
+          focusOverride: defined(itemKey) ? {itemKey} : undefined,
         });
       }
 
@@ -217,30 +212,30 @@ function InternalInput({
         evt.currentTarget.selectionEnd === evt.currentTarget.value.length &&
         evt.key === 'Delete'
       ) {
+        const itemKey = state.collection.getKeyBefore(item.key);
         dispatch({
           type: 'DELETE_TOKEN',
-          token: functionToken,
+          token,
+          focusOverride: defined(itemKey) ? {itemKey} : undefined,
         });
       }
     },
-    [dispatch, functionToken]
+    [dispatch, token, state, item]
   );
 
   const onOptionSelected = useCallback(
     (option: SelectOptionWithKey<string>) => {
-      const text = `${functionToken.function}(${option.value})`;
-
       dispatch({
-        text,
+        text: `${token.function}(${option.value})`,
         type: 'REPLACE_TOKEN',
-        token: functionToken,
+        token,
         focusOverride: {
-          itemKey: nextTokenKeyOfKind(state, functionToken, TokenKind.FREE_TEXT),
+          itemKey: nextTokenKeyOfKind(state, token, TokenKind.FREE_TEXT),
         },
       });
       resetInputValue();
     },
-    [dispatch, state, functionToken, resetInputValue]
+    [dispatch, state, token, resetInputValue]
   );
 
   const onPaste = useCallback((_evt: React.ClipboardEvent<HTMLInputElement>) => {
@@ -252,9 +247,9 @@ function InternalInput({
       <ComboBox
         ref={inputRef}
         items={items}
-        placeholder={token.attribute}
+        placeholder={attribute.attribute}
         inputLabel={t('Select an attribute')}
-        inputValue={isFocused ? inputValue : token.attribute}
+        inputValue={inputValue}
         filterValue={filterValue}
         tabIndex={item.key === state.selectionManager.focusedKey ? 0 : -1}
         shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
@@ -263,6 +258,7 @@ function InternalInput({
         onInputChange={onInputChange}
         onInputCommit={onInputCommit}
         onInputEscape={onInputEscape}
+        onInputFocus={onInputFocus}
         onKeyDown={onKeyDown}
         onKeyDownCapture={onKeyDownCapture}
         onOpenChange={setIsOpen}
@@ -294,28 +290,51 @@ function InternalInput({
   );
 }
 
+interface DeleteFunctionProps {
+  token: TokenFunction;
+}
+
+function DeleteFunction({token}: DeleteFunctionProps) {
+  const {dispatch} = useArithmeticBuilder();
+
+  const onClick = useCallback(() => {
+    dispatch({
+      type: 'DELETE_TOKEN',
+      token,
+    });
+  }, [dispatch, token]);
+
+  return (
+    <DeleteButton aria-label={t('Remove function %s', token.format())} onClick={onClick}>
+      <InteractionStateLayer />
+      <IconClose legacySize="8px" />
+    </DeleteButton>
+  );
+}
+
 function useAttributeItems({
   allowedAttributes,
   filterValue,
 }: {
-  allowedAttributes: string[];
+  allowedAttributes: FunctionArgument[];
   filterValue: string;
 }): Array<SelectOptionWithKey<string>> {
-  // TODO: use a config and maybe we want operators and parenthesis too
-  const functions: Array<SelectOptionWithKey<string>> = useMemo(() => {
+  // TODO: use a config
+  const attributes: Array<SelectOptionWithKey<string>> = useMemo(() => {
     const items = filterValue
-      ? allowedAttributes.filter(agg => agg.includes(filterValue))
+      ? allowedAttributes.filter(attr => attr.name.includes(filterValue))
       : allowedAttributes;
 
     return items.map(item => ({
-      key: item,
-      label: item,
-      value: item,
+      key: item.name,
+      label: item.label ?? item.name,
+      value: item.name,
+      textValue: item.name,
       hideCheck: true,
     }));
   }, [allowedAttributes, filterValue]);
 
-  return functions;
+  return attributes;
 }
 
 const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
@@ -353,10 +372,32 @@ const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
 
 const BaseGridCell = styled('div')`
   display: flex;
-  align-items: stretch;
+  align-items: center;
   position: relative;
+  height: 100%;
 `;
 
 const FunctionGridCell = styled(BaseGridCell)`
   color: ${p => p.theme.green400};
+  padding-left: ${space(0.5)};
+`;
+
+const FunctionArgumentOverlay = styled('div')`
+  position: absolute;
+  pointer-events: none;
+`;
+
+const DeleteButton = styled('button')`
+  background: none;
+  border: none;
+  color: ${p => p.theme.subText};
+  outline: none;
+  user-select: none;
+  padding-right: ${space(0.5)};
+
+  :focus {
+    background-color: ${p => p.theme.translucentGray100};
+    border-left: 1px solid ${p => p.theme.innerBorder};
+    outline: none;
+  }
 `;

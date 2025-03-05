@@ -132,9 +132,7 @@ class BaseQueryBuilder:
 
         if "project_objects" in params:
             projects = params["project_objects"]
-        elif "project_id" in params and (
-            isinstance(params["project_id"], list) or isinstance(params["project_id"], tuple)  # type: ignore[unreachable]
-        ):
+        elif "project_id" in params and isinstance(params["project_id"], (list, tuple)):
             projects = list(Project.objects.filter(id__in=params["project_id"]))
         else:
             projects = []
@@ -202,6 +200,7 @@ class BaseQueryBuilder:
         array_join: str | None = None,
         entity: Entity | None = None,
     ):
+        sentry_sdk.set_tag("querybuilder.name", type(self).__name__)
         if config is None:
             self.builder_config = QueryBuilderConfig()
         else:
@@ -987,7 +986,7 @@ class BaseQueryBuilder:
         from sentry.snuba.metrics.datasource import get_custom_measurements
 
         try:
-            result: Sequence[MetricMeta] = get_custom_measurements(
+            result = get_custom_measurements(
                 project_ids=self.params.project_ids,
                 organization_id=self.organization_id,
                 start=datetime.today() - timedelta(days=90),
