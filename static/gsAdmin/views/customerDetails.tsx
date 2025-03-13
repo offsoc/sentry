@@ -131,29 +131,19 @@ export default function CustomerDetails() {
     return null;
   }
 
-  const activeDataType = () => {
-    if (Object.values(DataType).includes(location.query.dataType as DataType)) {
-      return location.query.dataType as DataType;
-    }
+  const activeDataType = Object.values(DataType).includes(
+    location.query.dataType as DataType
+  )
+    ? (location.query.dataType as DataType)
+    : DataType.ERRORS;
 
-    return DataType.ERRORS;
-  };
+  const userPermissions = ConfigStore.get('user')?.permissions;
 
-  const userPermissions = () => {
-    return ConfigStore.get('user')?.permissions;
-  };
+  const isBillingAdmin = !!userPermissions?.has?.('billing.admin');
 
-  const isBillingAdmin = () => {
-    return !!userPermissions()?.has?.('billing.admin');
-  };
+  const hasProvisionPermission = !!userPermissions?.has?.('billing.provision');
 
-  const hasProvisionPermission = () => {
-    return !!userPermissions()?.has?.('billing.provision');
-  };
-
-  const isPolicyAdmin = () => {
-    return !!userPermissions()?.has?.('policies.admin');
-  };
+  const isPolicyAdmin = !!userPermissions?.has?.('policies.admin');
 
   const giftCategories = () => {
     if (subscription === null) {
@@ -371,7 +361,7 @@ export default function CustomerDetails() {
   );
 
   const actionRequiresBillingAdmin = {
-    disabled: !isBillingAdmin(),
+    disabled: !isBillingAdmin,
     disabledReason: 'Requires billing admin permissions.',
   };
 
@@ -662,8 +652,8 @@ export default function CustomerDetails() {
             key: 'provisionSubscription',
             name: 'Provision Subscription',
             help: 'Schedule changes to this subscription now or at a future date.',
-            disabled: !isBillingAdmin() || !hasProvisionPermission(),
-            disabledReason: isBillingAdmin()
+            disabled: !isBillingAdmin || !hasProvisionPermission,
+            disabledReason: isBillingAdmin
               ? 'Requires provisioning permissions.'
               : 'Requires billing admin permissions.',
             skipConfirmModal: true,
@@ -719,7 +709,7 @@ export default function CustomerDetails() {
             name: 'Confirm MSA Updated for Data Consent',
             help: "Confirm that customer's MSA has been updated.",
             visible: defined(subscription.msaUpdatedForDataConsent),
-            disabled: !isPolicyAdmin(),
+            disabled: !isPolicyAdmin,
             disabledReason: 'Requires policies:admin permissions.',
             skipConfirmModal: true,
             onAction: params => onUpdate({...params, msaUpdatedForDataConsent: true}),
@@ -815,7 +805,7 @@ export default function CustomerDetails() {
             noPanel: true,
             content: (
               <CustomerStatsFilters
-                dataType={activeDataType()}
+                dataType={activeDataType}
                 onChange={handleStatsTypeChange}
                 onDemandPeriodStart={subscription.onDemandPeriodStart}
                 onDemandPeriodEnd={subscription.onDemandPeriodEnd}
@@ -827,7 +817,7 @@ export default function CustomerDetails() {
             name: 'Usage Stats',
             content: (
               <CustomerStats
-                dataType={activeDataType()}
+                dataType={activeDataType}
                 orgSlug={orgId}
                 onDemandPeriodStart={subscription.onDemandPeriodStart}
                 onDemandPeriodEnd={subscription.onDemandPeriodEnd}
