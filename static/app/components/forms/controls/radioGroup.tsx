@@ -15,7 +15,7 @@ interface BaseRadioGroupProps<C extends string> {
   /**
    * The choices availiable in the group
    */
-  choices: Array<RadioOption<C>>;
+  choices: Array<RadioOption<C>> | Array<RadioItem<C>>;
   /**
    * Labels the radio group.
    */
@@ -35,7 +35,8 @@ interface BaseRadioGroupProps<C extends string> {
 }
 
 /**
- * A single option in a radio group
+ * The legacy format for options in a radio group
+ * @deprecated
  */
 export type RadioOption<C extends string = string> = [
   id: C,
@@ -43,6 +44,16 @@ export type RadioOption<C extends string = string> = [
   description?: React.ReactNode,
 ];
 
+/** A single option in a radio group */
+export type RadioItem<
+  C extends string = string,
+  L extends React.ReactNode = React.ReactNode,
+> = {
+  label: L;
+  text: L extends string | number | boolean ? never : string;
+  value: C;
+  description?: React.ReactNode;
+};
 export interface RadioGroupProps<C extends string = string>
   extends BaseRadioGroupProps<C>,
     Omit<ContainerProps, 'onChange'> {
@@ -61,6 +72,7 @@ function RadioGroup<C extends string>({
   tooltipPosition,
   ...props
 }: RadioGroupProps<C>) {
+  const items = normalizeChoices(choices);
   return (
     <Container
       orientInline={orientInline}
@@ -68,7 +80,7 @@ function RadioGroup<C extends string>({
       role="radiogroup"
       aria-label={label}
     >
-      {choices.map(([id, name, description], index) => {
+      {items.map(({value: id, label: display, text, description}, index) => {
         const disabledChoice = disabledChoices.find(([choiceId]) => choiceId === id);
         const disabledChoiceReason = disabledChoice?.[1];
         const disabled = !!disabledChoice || groupDisabled;
@@ -88,14 +100,15 @@ function RadioGroup<C extends string>({
             <RadioLineItem index={index} aria-checked={value === id} disabled={disabled}>
               <Radio
                 name={groupName}
-                aria-label={name?.toString()}
+                aria-label={text.toString()}
+                value={id}
                 disabled={disabled}
                 checked={value === id}
                 onChange={(e: React.FormEvent<HTMLInputElement>) =>
-                  !disabled && onChange(id, e)
+                  !disabled && onChange(id as C, e)
                 }
               />
-              <RadioLineText disabled={disabled}>{name}</RadioLineText>
+              <RadioLineText disabled={disabled}>{display}</RadioLineText>
               {description && (
                 <Fragment>
                   {/* If there is a description then we want to have a 2x2 grid so the first column width aligns with Radio Button */}
@@ -109,6 +122,16 @@ function RadioGroup<C extends string>({
       })}
     </Container>
   );
+}
+
+function normalizeChoices(choices: RadioOption[] | RadioItem[]): RadioItem[] {
+  return choices.map(choice => {
+    if (Array.isArray(choice)) {
+      const [id, label, description] = choice;
+      return {value: id, label, text: label?.toString() ?? '', description};
+    }
+    return choice;
+  });
 }
 
 const Container = styled('div')<ContainerProps>`
