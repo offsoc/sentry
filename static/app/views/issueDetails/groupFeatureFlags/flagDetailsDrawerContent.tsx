@@ -122,6 +122,17 @@ export function FlagDetailsDrawerContent() {
         }}
         size="xs"
       />
+      <BackButtonContainer>
+        <LinkButton
+          size="sm"
+          to={{
+            pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
+            query: {...location.query, tab: DrawerTab.FEATURE_FLAGS},
+          }}
+        >
+          {t('See all flags')}
+        </LinkButton>
+      </BackButtonContainer>
     </Fragment>
   );
 }
@@ -239,6 +250,12 @@ const LeftAlignedValue = styled('div')`
 `;
 
 const EmptyStateContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const BackButtonContainer = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
