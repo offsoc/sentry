@@ -84,10 +84,15 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
             # Keep track of the names of the nodes from the root of the component tree to here
             current_path.append(component.name)
 
-            # Walk the tree, looking for contributing components.
-            for value in component.values:
-                if isinstance(value, BaseGroupingComponent) and value.contributes:
-                    _walk_components(value, current_path)
+            # Walk the tree, looking for contributing components. (We skip walking stacktrace trees
+            # because none of the (potentially many) nodes inside them (all the frames, plus module,
+            # filename, context line, etc. inside each individual frame) is "major," and therefore
+            # none contributes to the description. We thus can speed things up a lot by skipping
+            # them.)
+            if component.id != "stacktrace":
+                for value in component.values:
+                    if isinstance(value, BaseGroupingComponent) and value.contributes:
+                        _walk_components(value, current_path)
 
             # Filter out the `None`s (which come from components not in `KNOWN_MAJOR_COMPONENT_NAMES`)
             # before adding our current path to the list of possible longest paths
