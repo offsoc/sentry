@@ -1,0 +1,25 @@
+
+
+
+event comes in
+apply dynamic auto rules
+  already has a value -> skip, copy to sdk_in_app?
+  no value -> apply rules, set orig_in_app (always None)
+
+apply rust enhancers
+  apply auto rules, custom rules
+    -> already had value, source SDK, matches auto rule ->
+
+
+sdk value
+dynamic auto rules value
+rust value auto
+rust value custom
+
+final = rust custom or sdk or rust auto or dynamic
+
+dynamic_string = create_dynamic_rule_string
+dynamic_enhancements = Enhancements.from_config_string(dynamic_string)
+merged_rust_enhancements = RustEnhancements.empty()
+merged_rust_enhancements.extend_from(dynamic_enhancements.rust_enhancements)
+merged_rust_enhancements.extend_from(existing_rust_enhancements)

@@ -1,0 +1,1 @@
+We think of the `grouping.in_app_frame_mix` metric as coming only from error events, but in fact we collect it durring issue platform group creation, too. This adds a `source` tag to the metric, so we can tell one from the other.

@@ -1,0 +1,22 @@
+{
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "main",
+              "abs_path": "/foo/bar/baz.py",
+              "filename": "baz.py"
+            }
+          ]
+        },
+        "type": "Exception"
+      }
+    ]
+  },
+  "debug_meta": {
+    "project_root": "/foo/bar"
+  },
+  "platform": "python"
+}

@@ -1,0 +1,19 @@
+- no in-app frames
+- rule which marks all system frames as contributing
+
+
++app +group
+  app variant -> contributes, both hints
+  system variant -> contributes, +group hint
+
++app -group
+  app variant -> doesn't contribute, -group hint
+  system variant -> doesn't contribute, -group hint
+
+-app +group
+  app variant -> doesn't contribute, -app hint
+  system variant -> contributes, +group hint
+
+-app -group
+  app variant -> doesn't contribute, -app hint
+  system variant -> doesn't contribute, -group hint
