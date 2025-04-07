@@ -1,6 +1,9 @@
+import type {Location} from 'history';
 import * as qs from 'query-string';
 
+import type {Organization, Project} from 'sentry/types';
 import {escapeDoubleQuotes} from 'sentry/utils';
+// import {LocationQuery} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {safeURL} from 'sentry/utils/url/safeURL';
 
@@ -86,6 +89,29 @@ export function appendExcludeTagValuesCondition(
   return currentQuery;
 }
 
+export function getFeatureStatusFromQueryStringAndProject(
+  location: Location,
+  orgOrProject: Organization | Project,
+  querystringName: string,
+  featureName: string
+): boolean {
+  const queryObj = location.query;
+  const features = orgOrProject.features;
+
+  if (querystringName in queryObj) {
+    const value = queryObj[querystringName];
+
+    if (value === '1') {
+      return true;
+    }
+    if (value === '0') {
+      return false;
+    }
+  }
+
+  return features.includes(featureName);
+}
+
 // This function has multiple signatures to help with typing in callers.
 export function decodeScalar(value: QueryValue): string | undefined;
 export function decodeScalar(value: QueryValue, fallback: string): string;
@@ -119,7 +145,7 @@ export function decodeInteger(value: QueryValue, fallback?: number): number | un
     return fallback;
   }
 
-  const parsed = parseInt(unwrapped, 10);
+  const parsed = Number.parseInt(unwrapped, 10);
   if (isFinite(parsed)) {
     return parsed;
   }

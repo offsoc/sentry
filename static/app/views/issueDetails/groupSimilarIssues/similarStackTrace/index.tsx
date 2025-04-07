@@ -1,6 +1,6 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -56,8 +56,10 @@ function SimilarStackTrace({project}: Props) {
   });
   // similarity-embeddings feature is only available on project details
   const hasSimilarityEmbeddingsFeature =
-    projectData?.features.includes('similarity-embeddings') ||
-    location.query.similarityEmbeddings === '1';
+    location.query.similarityEmbeddings === '0'
+      ? false
+      : projectData?.features.includes('similarity-embeddings') ||
+        location.query.similarityEmbeddings === '1';
   // Use reranking by default (assuming the `seer.similarity.similar_issues.use_reranking`
   // backend option is using its default value of `True`). This is just so we can turn it off
   // on demand to see if/how that changes the results.
