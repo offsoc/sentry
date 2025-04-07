@@ -24,7 +24,7 @@ export function EventGroupingInfoSection({
   projectSlug,
   showGroupingConfig,
   group,
-}: EventGroupingInfoSectionProps) {
+}: Readonly<EventGroupingInfoSectionProps>) {
   const hasStreamlinedUI = useHasStreamlinedUI();
   const [isOpen, setIsOpen] = useState(false);
 
