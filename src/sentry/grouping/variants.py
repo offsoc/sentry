@@ -59,7 +59,7 @@ class BaseVariant(ABC):
         return rv
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} {self.get_hash()!r} ({self.type})>"
+        return f"<{self.__class__.__name__} ({self.description}) hash={self.get_hash()} >"
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, BaseVariant):

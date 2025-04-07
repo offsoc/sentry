@@ -202,7 +202,7 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
         return rv
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({self.id!r}, hint={self.hint!r}, contributes={self.contributes!r}, values={self.values!r})"
+        return f"{self.__class__.__name__}(values={self.values!r}, contributes={self.contributes}, hint={self.hint})"
 
 
 # NOTE: In all of the classes below, the type(s) passed to `BaseGroupingComponent` represent
