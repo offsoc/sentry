@@ -13,7 +13,7 @@
     },
     {
       "name": "sentry backend",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "stopOnEntry": true,
       "program": "${workspaceRoot}/.venv/bin/sentry",
@@ -27,7 +27,7 @@
     },
     {
       "name": "sentry backend debug",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "${workspaceRoot}/.venv/bin/sentry",
       "args": ["devserver", "--debug-server", "--no-pretty"],
@@ -56,7 +56,7 @@
     },
     {
       "name": "pytest - current file",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "module": "pytest",
       "args": ["--verbosity", "2", "${file}", "--reuse-db"],
