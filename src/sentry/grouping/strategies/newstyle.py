@@ -751,7 +751,13 @@ def filter_exceptions_for_exception_groups(
         next(group)
         for _, group in itertools.groupby(
             top_level_exceptions,
-            key=lambda exception: hash_from_values(exception_components[id(exception)].values())
+            key=lambda exception: hash_from_values(
+                # Temporarily throw the app and system versions of the exception component into a
+                # wrapper component in order to end up with a single, combined list of values for both
+                ChainedExceptionGroupingComponent(
+                    values=list(exception_components[id(exception)].values())
+                ).iter_values()
+            )
             or "",
         )
     ]
