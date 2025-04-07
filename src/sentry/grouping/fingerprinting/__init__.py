@@ -577,7 +577,7 @@ class FingerprintingVisitor(NodeVisitorBase):
         return node.text
 
     def visit_fingerprinting_rules(
-        self, _: object, children: list[str | FingerprintRule | None]
+        self, _: Node, children: list[str | FingerprintRule | None]
     ) -> FingerprintingRules:
         changelog = []
         rules = []
@@ -600,7 +600,7 @@ class FingerprintingVisitor(NodeVisitorBase):
         )
 
     def visit_line(
-        self, _: object, children: tuple[object, list[FingerprintRule | str | None], object]
+        self, _: Node, children: tuple[object, list[FingerprintRule | str | None], object]
     ) -> FingerprintRule | str | None:
         _, line, _ = children
         comment_or_rule_or_empty = line[0]
@@ -610,7 +610,7 @@ class FingerprintingVisitor(NodeVisitorBase):
 
     def visit_rule(
         self,
-        _: object,
+        _: Node,
         children: tuple[
             object, list[FingerprintMatcher], object, object, object, FingerprintWithAttributes
         ],
@@ -619,21 +619,21 @@ class FingerprintingVisitor(NodeVisitorBase):
         return FingerprintRule(matcher, fingerprint, attributes)
 
     def visit_matcher(
-        self, _: object, children: tuple[object, list[str], str, object, str]
+        self, _: Node, children: tuple[object, list[str], str, object, str]
     ) -> FingerprintMatcher:
         _, negation, key, _, pattern = children
         return FingerprintMatcher(key, pattern, bool(negation))
 
-    def visit_matcher_type(self, _: object, children: list[str]) -> str:
+    def visit_matcher_type(self, _: Node, children: list[str]) -> str:
         return children[0]
 
-    def visit_argument(self, _: object, children: list[str]) -> str:
+    def visit_argument(self, _: Node, children: list[str]) -> str:
         return children[0]
 
     visit_fp_argument = visit_argument
 
     def visit_fingerprint(
-        self, _: object, children: list[str | tuple[str, str]]
+        self, _: Node, children: list[str | tuple[str, str]]
     ) -> FingerprintWithAttributes:
         fingerprint = []
         attributes: FingerprintRuleAttributes = {}
@@ -647,14 +647,14 @@ class FingerprintingVisitor(NodeVisitorBase):
                 fingerprint.append(item)
         return FingerprintWithAttributes(fingerprint, attributes)
 
-    def visit_fp_value(self, _: object, children: tuple[object, str, object, object]) -> str:
+    def visit_fp_value(self, _: Node, children: tuple[object, str, object, object]) -> str:
         _, argument, _, _ = children
         # Normalize variations of `{{ default }}`
         if isinstance(argument, str) and is_default_fingerprint_var(argument):
             return DEFAULT_FINGERPRINT_VARIABLE
         return argument
 
-    def visit_fp_attribute(self, _: object, children: tuple[str, object, str]) -> tuple[str, str]:
+    def visit_fp_attribute(self, _: Node, children: tuple[str, object, str]) -> tuple[str, str]:
         key, _, value = children
         if key != "title":
             raise InvalidFingerprintingConfig("Unknown attribute '%s'" % key)
@@ -668,7 +668,7 @@ class FingerprintingVisitor(NodeVisitorBase):
 
     visit_unquoted_no_comma = visit_unquoted
 
-    def generic_visit(self, _: object, children: T) -> T:
+    def generic_visit(self, _: Node, children: T) -> T:
         return children
 
     def visit_key(self, node: Node, _: object) -> str:
