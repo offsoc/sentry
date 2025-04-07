@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import ParamSpec, TypeVar
+from typing import Any, ParamSpec, TypeVar
+from unittest import mock
+from unittest.mock import MagicMock
 
 # TODO: Once we're on python 3.12, we can get rid of these and change the first line of the
 # signature of `capture_results` to
@@ -122,3 +124,39 @@ def capture_results(
         return returned_value
 
     return wrapped_fn
+
+
+def filter_mock_calls(
+    mock_fn: MagicMock,
+    args_to_match: list[Any] | list[tuple[int, Any]] | None = None,
+    kwargs_to_match: dict[str, Any] | None = None,
+) -> list[mock._Call]:
+    """
+    Given a mock function, grab only the calls whose args and/or kwargs match (or are a super set
+    of) those given.
+
+    `args_to_match` can be given as a simple list of argument values - in which case that list will
+    be matched against the full list of positional arguments - or as a list of tuples of the form
+    (arg_position, arg_value). (For example, if the function being mocked has the signature `f(a, b,
+    c)`, to match every call where `b` is "hello", the `args_to_match` value passed to this function
+    should be `[(1, "hello")]`.)
+
+    `kwargs_to_match` should be given as a dictionary.
+    """
+
+    def _call_matches(call: mock._Call, args_to_match, kwargs_to_match):
+        args_match = (
+            # Use a sequence type to preserver order
+            tuple(args_to_match) == call.args
+            or
+            # Here we can use a set because the indices are embedded in the data we're comparing
+            set(args_to_match) <= set(enumerate(call.args))
+        )
+        kwargs_match = set(kwargs_to_match.items()) <= set(call.kwargs.items())
+        return args_match and kwargs_match
+
+    return [
+        call
+        for call in mock_fn.call_args_list
+        if _call_matches(call, args_to_match, kwargs_to_match)
+    ]
