@@ -340,6 +340,10 @@ class BaseEvent(metaclass=abc.ABCMeta):
             variant_name: variant.get_hash() for variant_name, variant in variants.items()
         }
 
+        # TODO: When only one variant with a hash is returned, we won't have to sort here or dedupe
+        # below (when the variants have matching hashes, we should take care of the deduping by
+        # marking one of them as non-contributing)
+        #
         # Sort the variants so that the system variant (if any) is always last, in order to resolve
         # ambiguities when choosing primary_hash for Snuba
         sorted_variant_names = sorted(
