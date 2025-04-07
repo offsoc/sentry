@@ -856,28 +856,28 @@ register(
     "issues.severity.seer-project-rate-limit",
     type=Any,
     default={"limit": 5, "window": 1},
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
     "issues.severity.seer-global-rate-limit",
     type=Any,
     default={"limit": 20, "window": 1},
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
     "issues.severity.seer-circuit-breaker-passthrough-limit",
     type=Dict,
     default={"limit": 1, "window": 10},
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
     "issues.severity.seer-timout",
     type=Float,
     default=0.2,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
@@ -993,13 +993,13 @@ register(
     "seer.similarity.global-rate-limit",
     type=Dict,
     default={"limit": 20, "window": 1},  # window is in seconds
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "seer.similarity.per-project-rate-limit",
     type=Dict,
     default={"limit": 5, "window": 1},  # window is in seconds
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Note: This is based on US volume. Since other regions are lower-traffic, this effectively means
@@ -1052,7 +1052,7 @@ register(
     "embeddings-grouping.seer.nearest-neighbour-timeout",
     type=Float,
     default=0.1,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # seer embeddings record update endpoint timeout
@@ -1060,7 +1060,7 @@ register(
     "embeddings-grouping.seer.embeddings-record-update-timeout",
     type=Float,
     default=0.05,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # seer embeddings record delete endpoint timeout
@@ -1068,7 +1068,7 @@ register(
     "embeddings-grouping.seer.embeddings-record-delete-timeout",
     type=Float,
     default=0.1,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # seer embeddings ratelimit in percentage that is allowed
@@ -1076,7 +1076,7 @@ register(
     "embeddings-grouping.seer.ratelimit",
     type=Int,
     default=0,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # seer embeddings backfill batch size
@@ -1084,14 +1084,14 @@ register(
     "embeddings-grouping.seer.backfill-batch-size",
     type=Int,
     default=10,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
     "embeddings-grouping.seer.delete-record-batch-size",
     type=Int,
     default=100,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # ## sentry.killswitches
