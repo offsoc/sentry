@@ -614,7 +614,7 @@ def chained_exception(
     all_exceptions = interface.exceptions()
 
     # For each exception, create a dictionary of grouping components by variant name
-    exception_components_by_exception = {
+    exception_components_by_exception: dict[int, dict[str, ExceptionGroupingComponent]] = {
         id(exception): context.get_grouping_components_by_variant(exception, event=event, **meta)
         for exception in all_exceptions
     }
@@ -649,7 +649,8 @@ def chained_exception(
     exception_components_by_variant: dict[str, list[ExceptionGroupingComponent]] = {}
 
     for exception in exceptions:
-        for variant_name, component in exception_components_by_exception[id(exception)].items():
+        current_exception_components_by_variant = exception_components_by_exception[id(exception)]
+        for variant_name, component in current_exception_components_by_variant.items():
             exception_components_by_variant.setdefault(variant_name, []).append(component)
 
     chained_exception_components_by_variant = {}
