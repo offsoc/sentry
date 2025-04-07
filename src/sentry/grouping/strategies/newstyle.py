@@ -344,7 +344,11 @@ def frame(
     if context_line_component is not None:
         values.append(context_line_component)
 
-    frame_component = FrameGroupingComponent(values=values, in_app=frame.in_app)
+    frame_component = FrameGroupingComponent(
+        values=values,
+        in_app=frame.in_app,
+        client_in_app=getattr(frame, "data", {}).get("client_in_app"),
+    )
 
     # if we are in javascript fuzzing mode we want to disregard some
     # frames consistently.  These force common bad stacktraces together

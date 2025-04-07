@@ -398,6 +398,7 @@ def frame_legacy(
             contributes=contributes,
             hint=hint,
             in_app=interface.in_app,
+            client_in_app=getattr(interface, "data", {}).get("client_in_app"),
         )
     }
 

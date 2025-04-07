@@ -261,16 +261,26 @@ FrameGroupingComponentChildren = (
 class FrameGroupingComponent(BaseGroupingComponent[FrameGroupingComponentChildren]):
     id: str = "frame"
     in_app: bool
+    client_in_app: bool | None
 
     def __init__(
         self,
         values: Sequence[FrameGroupingComponentChildren],
         in_app: bool,
+        client_in_app: bool | None = None,
         hint: str | None = None,  # only passed in legacy
         contributes: bool | None = None,  # only passed in legacy
     ):
         super().__init__(hint=hint, contributes=contributes, values=values)
         self.in_app = in_app
+        self.client_in_app = client_in_app
+
+    def as_dict(self) -> dict[str, Any]:
+        data = super().as_dict()
+        data["in_app"] = self.in_app
+        data["client_in_app"] = self.client_in_app
+
+        return data
 
 
 # Security-related inner components

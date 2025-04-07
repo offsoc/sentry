@@ -103,6 +103,8 @@ def test_callee_recursion():
 
 
 def test_flipflop_inapp():
+    """Test setting of `in_app`, `orig_in_app`, and `client_in_app`"""
+
     enhancements = Enhancements.from_rules_text(
         """
         family:all +app
@@ -114,18 +116,21 @@ def test_flipflop_inapp():
     enhancements.apply_category_and_updated_in_app_to_frames(frames, "javascript", {})
 
     assert frames[0]["data"]["orig_in_app"] == -1  # == None
+    assert frames[0]["data"]["client_in_app"] is None
     assert frames[0]["in_app"] is False
 
     frames = [{"in_app": False}]
     enhancements.apply_category_and_updated_in_app_to_frames(frames, "javascript", {})
 
-    assert "data" not in frames[0]  # no changes were made
+    assert "orig_in_app" not in frames[0]["data"]  # no changes were made
+    assert frames[0]["data"]["client_in_app"] is False
     assert frames[0]["in_app"] is False
 
     frames = [{"in_app": True}]
     enhancements.apply_category_and_updated_in_app_to_frames(frames, "javascript", {})
 
     assert frames[0]["data"]["orig_in_app"] == 1  # == True
+    assert frames[0]["data"]["client_in_app"] is True
     assert frames[0]["in_app"] is False
 
 

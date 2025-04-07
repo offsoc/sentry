@@ -19,7 +19,7 @@ from sentry_ophio.enhancers import Enhancements as RustEnhancements
 from sentry import projectoptions
 from sentry.grouping.component import FrameGroupingComponent, StacktraceGroupingComponent
 from sentry.stacktraces.functions import set_in_app
-from sentry.utils.safe import get_path, set_path
+from sentry.utils.safe import get_path, set_path, setdefault_path
 
 from .exceptions import InvalidEnhancerConfig
 from .matchers import create_match_frame
@@ -184,6 +184,11 @@ class Enhancements:
         )
 
         for frame, (category, in_app) in zip(frames, category_and_in_app_results):
+            # Track the incoming `in_app` value, before we make any changes. This is different from
+            # the `orig_in_app` value which may be set below, because it's not tied to the value
+            # changing as a result of stacktrace rules.
+            setdefault_path(frame, "data", "client_in_app", value=frame.get("in_app"))
+
             if in_app is not None:
                 # If the `in_app` value changes as a result of this call, the original value (in
                 # integer form) will be added to `frame.data` under the key "orig_in_app"
