@@ -982,7 +982,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     def test_culprit_after_stacktrace_processing(self) -> None:
         from sentry.grouping.enhancer import Enhancements
 
-        enhancements_str = Enhancements.from_config_string(
+        enhancements_str = Enhancements.from_rules_text(
             """
             function:in_app_function +app
             function:not_in_app_function -app
@@ -2219,7 +2219,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         """
         from sentry.grouping.enhancer import Enhancements
 
-        enhancements_str = Enhancements.from_config_string(
+        enhancements_str = Enhancements.from_rules_text(
             """
             function:foo category=bar
             function:foo2 category=bar
@@ -2295,7 +2295,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         """
         from sentry.grouping.enhancer import Enhancements
 
-        enhancements_str = Enhancements.from_config_string(
+        enhancements_str = Enhancements.from_rules_text(
             """
             function:foo category=foo_like
             category:foo_like -group
