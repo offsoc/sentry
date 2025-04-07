@@ -521,6 +521,8 @@ def stacktrace_variant_processor(
 def single_exception(
     interface: SingleException, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
+    if "strategy" not in kwargs:
+        breakpoint()
     exception = interface
 
     type_component = ErrorTypeGroupingComponent(

@@ -130,6 +130,8 @@ class GroupingContext:
         """Invokes a delegate grouping strategy.  If no such delegate is
         configured a fallback grouping component is returned.
         """
+        if "strategy" not in kwargs:
+            breakpoint()
         return self._get_strategy_dict(interface, event=event, **kwargs)
 
     @overload
@@ -153,6 +155,8 @@ class GroupingContext:
         """Invokes a delegate grouping strategy.  If no such delegate is
         configured a fallback grouping component is returned.
         """
+        if "strategy" not in kwargs:
+            breakpoint()
         rv = self._get_strategy_dict(interface, event=event, **kwargs)
 
         assert len(rv) == 1
@@ -161,6 +165,8 @@ class GroupingContext:
     def _get_strategy_dict(
         self, interface: Interface, *, event: Event, **kwargs: Any
     ) -> ReturnedVariants:
+        if "strategy" not in kwargs:
+            breakpoint()
         path = interface.path
         strategy = self.config.delegates.get(path)
         if strategy is None:
