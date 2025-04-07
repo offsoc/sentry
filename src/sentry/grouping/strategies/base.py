@@ -228,32 +228,17 @@ class Strategy(Generic[ConcreteInterface]):
         """
         self.variant_processor_func = func
         return func
-        # TODO: figure out if variant is ever passed (no, I think?) and then fix name and docstring below
-
-    def get_grouping_component(
-        self, event: Event, context: GroupingContext
-    ) -> None | BaseGroupingComponent[Any] | ReturnedVariants:
-        """Given a specific variant this calculates the grouping component."""
-        interface = event.interfaces.get(self.interface_name)
-
-        if interface is None:
-            return None
-
-        with context:
-            return self(interface, event=event, context=context)
 
     def get_grouping_components(self, event: Event, context: GroupingContext) -> ReturnedVariants:
         """This returns a dictionary of all components by variant that this
         strategy can produce.
         """
-
-        # strategy can decide on its own which variants to produce and which contribute
-        components_by_variant = self.get_grouping_component(event, context=context)
-        if components_by_variant is None:
+        interface = event.interfaces.get(self.interface_name)
+        if interface is None:
             return {}
 
-        # TODO: Get rid of this when combining functions
-        assert isinstance(components_by_variant, dict)
+        with context:
+            components_by_variant = self(interface, event=event, context=context)
 
         final_components_by_variant = {}
         priority_contributing_variants_by_hash = {}
