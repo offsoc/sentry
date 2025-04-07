@@ -73,18 +73,18 @@ def hpkp_v1(
 @produces_variants(["default"])
 def csp_v1(interface: Csp, event: Event, context: GroupingContext, **meta: Any) -> ReturnedVariants:
     violation_component = ViolationGroupingComponent()
-    uri_component = URIGroupingComponent()
+    uri_component = URIGroupingComponent(values=[interface.normalized_blocked_uri])
 
     if interface.local_script_violation_type:
+        # TODO: Why are the surrounding single quotes necessary? It's already a string. Where is
+        # this value used?
         violation_component.update(values=["'%s'" % interface.local_script_violation_type])
         uri_component.update(
             contributes=False,
-            hint="violation takes precedence",
-            values=[interface.normalized_blocked_uri],
+            hint="ignored because local 'script-src' violation takes precedence",
         )
     else:
-        violation_component.update(contributes=False, hint="not a local script violation")
-        uri_component.update(values=[interface.normalized_blocked_uri])
+        violation_component.update(contributes=False, hint="not a local 'script-src' violation")
 
     return {
         context["variant"]: CSPGroupingComponent(

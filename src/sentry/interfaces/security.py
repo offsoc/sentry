@@ -146,6 +146,11 @@ class ExpectCT(SecurityReport):
     title = "Expect-CT Report"
 
 
+# TODO: `violated_directive` should be `originalPolicy`, since according to the link below,
+# `violatedDirective` is just a legacy alias for `effectiveDirective`, and `originalPolicy` is what
+# would hold the kind of data currently under `violated_directve` in the example below. Also, where
+# do we translate it from camel case to snake case - relay, maybe?
+# TODO: Seems like the data might be right, just the example below wrong? Check variant tests
 class Csp(SecurityReport):
     """
     A CSP violation report.
