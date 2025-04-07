@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from collections import Counter
 from collections.abc import Generator, Iterator, Sequence
 from functools import cached_property
-from typing import Any, Self
+from typing import Any, Self, TypedDict
 
 from sentry.grouping.utils import hash_from_values
 
@@ -29,6 +29,14 @@ def _calculate_contributes[ValuesType](values: Sequence[ValuesType]) -> bool:
         if not isinstance(value, BaseGroupingComponent) or value.contributes:
             return True
     return False
+
+
+class GroupingComponentAsDict(TypedDict):
+    id: str
+    name: str | None
+    contributes: bool
+    hint: str | None
+    values: list[int | str | GroupingComponentAsDict]
 
 
 class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](ABC):
