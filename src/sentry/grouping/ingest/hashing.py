@@ -231,7 +231,9 @@ def get_or_create_grouphashes(
         hashes = filter(lambda hash_value: hash_value in existing_hashes, hashes)
 
     for hash_value in hashes:
-        grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)
+        grouphash, created = GroupHash.objects.select_related("_metadata").get_or_create(
+            project=project, hash=hash_value
+        )
 
         if should_handle_grouphash_metadata(project, created):
             try:
