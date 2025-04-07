@@ -102,7 +102,7 @@ def get_similarity_data_from_seer(
             tags={
                 **metric_tags,
                 "outcome": "error",
-                "error": "Redirect" if redirect else "RequestError",
+                "error": "Redirect" if redirect else f"RequestError - {response.status}",
             },
         )
 
