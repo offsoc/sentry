@@ -153,6 +153,16 @@ def resolve_fingerprint_variable(
     else:
         return None
 
+    # TODO: Comment this in and fill in the missing pieces
+    # else:
+    #     # TODO: Once all projects are on FILL IN CONFIG NAME HERE, we can remove the check on FILL
+    #     # IN OPTION KEY HERE and change the return type of this function to just be `str`
+    #     return (
+    #         "<unrecognized-variable-%s>" % variable_key
+    #         if "however we're going to check that the config says to do this"
+    #         else None
+    #     )
+
 
 def resolve_fingerprint_values(fingerprint: list[str], event_data: NodeData) -> list[str]:
     def _resolve_single_entry(entry: str) -> str:
