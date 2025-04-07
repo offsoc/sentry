@@ -418,21 +418,27 @@ def get_grouping_variants_for_event(
     additional_variants: dict[str, BaseVariant] = {}
 
     # If the fingerprint is the default fingerprint, we can use the variants as is. If it's custom,
-    # we need to create an addiional fingerprint variant and mark the existing variants as
-    # non-contributing. And if it's hybrid, we'll replace the existing variants with "salted"
-    # versions which include the fingerprint.
+    # we need to create a fingerprint variant and mark the existing variants as non-contributing.
+    # If it's hybrid, we'll replace the existing variants with "salted" versions which include
+    # the fingerprint.
     if fingerprint_type == "custom":
-        for variant in strategy_component_variants.values():
-            variant.component.update(contributes=False, hint="custom fingerprint takes precedence")
-
-        if fingerprint_info.get("matched_rule", {}).get("is_builtin") is True:
+        matched_rule = fingerprint_info.get("matched_rule", {})
+        if matched_rule and matched_rule.get("is_builtin") is True:
             additional_variants["built_in_fingerprint"] = BuiltInFingerprintVariant(
                 resolved_fingerprint, fingerprint_info
             )
+            hint = "built-in fingerprint takes precedence"
         else:
             additional_variants["custom_fingerprint"] = CustomFingerprintVariant(
                 resolved_fingerprint, fingerprint_info
             )
+            if matched_rule:
+                hint = "custom server fingerprint takes precedence"
+            else:
+                hint = "custom client fingerprint takes precedence"
+
+        for variant in strategy_component_variants.values():
+            variant.component.update(contributes=False, hint=hint)
     elif fingerprint_type == "hybrid":
         for variant_name, variant in strategy_component_variants.items():
             # Since we're reusing the variant names, when all of the variants are combined, these
