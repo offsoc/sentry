@@ -36,6 +36,10 @@ S011_msg = "S011 Use override_options(...) instead to ensure proper cleanup"
 # SentryIsAuthenticated extends from IsAuthenticated and provides additional checks for demo users
 S012_msg = "S012 Use ``from sentry.api.permissions import SentryIsAuthenticated`` instead"
 
+S013_msg = (
+    "S013 Remember to remove all instances of `pytest.mark.only` before pushing to production."
+)
+
 
 class SentryVisitor(ast.NodeVisitor):
     def __init__(self, filename: str) -> None:
@@ -145,6 +149,18 @@ class SentryVisitor(ast.NodeVisitor):
             for keyword in node.keywords:
                 if keyword.arg == "SENTRY_OPTIONS":
                     self.errors.append((keyword.lineno, keyword.col_offset, S011_msg))
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        for decorator in node.decorator_list:
+            if (
+                isinstance(decorator, ast.Attribute)
+                and decorator.attr == "only"
+                and isinstance(decorator.value, ast.Attribute)
+                and decorator.value.attr == "mark"
+                and isinstance(decorator.value.value, ast.Name)
+                and decorator.value.value.id == "pytest"
+            ):
+                self.errors.append((node.lineno, node.col_offset, S013_msg))
 
         self.generic_visit(node)
 

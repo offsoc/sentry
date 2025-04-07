@@ -55,7 +55,7 @@
       "type": "debugpy",
       "request": "launch",
       "module": "pytest",
-      "args": ["--verbosity", "2", "${file}", "--reuse-db"],
+      "args": ["--verbosity", "2", "--reuse-db", "${file}"],
       "django": true,
       "env": {
         "SENTRY_MODEL_MANIFEST_FILE_PATH": "./model-manifest.json"
