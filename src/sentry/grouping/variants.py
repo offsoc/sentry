@@ -264,11 +264,10 @@ class SaltedComponentVariant(ComponentVariant):
         strategy_config: StrategyConfiguration,
         fingerprint_info: FingerprintInfo,
     ):
-        ComponentVariant.__init__(self, component, contributing_component, strategy_config)
+        super().__init__(component, contributing_component, strategy_config)
         self.values = fingerprint
         self.fingerprint_info = fingerprint_info
 
-        # TODO: use super above
         # TODO: s/`values`/`fingerprint` (if possible - it might not be because it might need to match ComponentVariant)
 
     @property

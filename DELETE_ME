@@ -1,0 +1,33 @@
+variance
+
+two types, Super and Sub (Sub is a subtype of Super)
+
+covariant: WrapperType[Sub] is a subtype of WrapperType[Super]
+    immutable containers, union types
+    a tuple of Dogs is a tuple of Animals, but not all tuples of Animals are tuples of Dogs
+    a DogOrPlant is an AnimalOrPlant, but not all AnimalOrPlants are DogOrPlants
+
+contravariant (backwards): WrapperType[Sub] is a *supertype* of WrapperType[Super]
+    callables
+    an AnimalWasher can wash all Dogs (is a DogWasher), but a DogWasher can't necessarily wash all Animals
+
+invariant: neither one is true
+    mutable containers
+    a list of Dogs is a list of Animals, but if it's a list of Animals, I can add a Cat to it, at which point it's no longer a list of Dogs? ?????
+
+
+
+According to XXXXXXX,
+
+This adds two fields, and their associated datatypes, to the `GroupHashMetadata` table:
+
+- `hash_basis`: This is an enum which will track the type of grouping which was used (message, stacktrace, fingerprint, etc.). See the `HashBasis` class for the full list of possibilities.
+
+- `hashing_metadata`: This is a flat
+
+
+
+In the process of writing the code to gather hashing metadata, I found myself needing to be able to differentiate between different flavors of variants and components, to avoid having to do a ton of `hasattr`/`if x in y`/`if x.y is not None`/etc checks before accessing data in the grouping variants. I therefore made a few typing changes to the relevant code:
+
+- Add a few variant and component subclasses, to be able to type things more specifically. As a bonus, this also makes deal
+-
