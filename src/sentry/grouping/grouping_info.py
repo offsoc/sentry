@@ -4,10 +4,9 @@ from typing import Any
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.grouping.api import GroupingConfigNotFound
-from sentry.grouping.variants import BaseVariant, PerformanceProblemVariant
+from sentry.grouping.variants import BaseVariant
 from sentry.models.project import Project
 from sentry.utils import metrics
-from sentry.utils.performance_issues.performance_detection import EventPerformanceProblem
 
 logger = logging.getLogger(__name__)
 
@@ -22,20 +21,12 @@ def get_grouping_info(
 
     try:
         if event.get_event_type() == "transaction":
-            # Transactions events are grouped using performance detection. They
-            # are not subject to grouping configs, and the only relevant
-            # grouping variant is `PerformanceProblemVariant`.
-
-            problems = EventPerformanceProblem.fetch_multi([(event, h) for h in hashes])
-
-            # Create a variant for every problem associated with the event
-            # TODO: Generate more unique keys, in case this event has more than
-            # one problem of a given type
-            variants: dict[str, BaseVariant] = {
-                problem.problem.type.slug: PerformanceProblemVariant(problem)
-                for problem in problems
-                if problem
-            }
+            # TODO: Test proving the front end doesn't call this endpoint for performance issues
+            # https://github.com/getsentry/sentry/blob/599a484808fa6bd04df41fc165496d5d85cdcb33/static/app/components/events/groupingInfo/index.spec.tsx#L54
+            variants = {}
+            # TODO: It's not clear we ever land in this branch. Check back in on this metric and if
+            # it hasn't fired, we can probably get rid of this and the accompanying test.
+            metrics.incr("grouping.get_grouping_info.called_on_transaction_event")
         else:
             variants = event.get_grouping_variants(
                 force_config=config_name, normalize_stacktraces=True
