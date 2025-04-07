@@ -119,6 +119,9 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         event = self.create_sample_event(platform="pii")
         self.page.visit_issue(self.org.slug, event.group.id)
 
+    import pytest
+
+    @pytest.mark.only
     def test_empty_exception(self):
         event = self.create_sample_event(platform="empty-exception")
         self.page.visit_issue(self.org.slug, event.group.id)

@@ -236,6 +236,7 @@ def find_stacktraces_in_data(
         )
 
     # Look for stacktraces under the key `exception`
+    # breakpoint()
     for exc in get_path(data, "exception", "values", filter=True, default=()):
         _append_stacktrace(
             exc.get("stacktrace"),

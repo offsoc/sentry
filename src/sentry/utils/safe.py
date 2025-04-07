@@ -108,16 +108,19 @@ def get_path(data: PathSearchable, *path, should_log=False, **kwargs):
 
     logger_data = {}
     if should_log:
-        logger_data = {
-            "path_searchable": json.dumps(data),
-            "path_arg": json.dumps(path),
-        }
+        logger_data = {"path_arg": json.dumps(path)}
+        try:
+            logger_data["path_searchable"] = json.dumps(data)
+        except Exception:
+            logger_data["path_searchable"] = str(data)
 
     for p in path:
         if isinstance(data, Mapping) and p in data:
             data = data[p]
         elif isinstance(data, (list, tuple)) and isinstance(p, int) and -len(data) <= p < len(data):
             data = data[p]
+        # elif isinstance(p, str) and hasattr(data, p):
+        #     data = getattr(data, p)
         else:
             if should_log:
                 logger_data["invalid_path"] = json.dumps(p)
@@ -128,7 +131,10 @@ def get_path(data: PathSearchable, *path, should_log=False, **kwargs):
         if data is None:
             logger.info("sentry.safe.get_path.iterated_path_is_none", extra=logger_data)
         else:
-            logger_data["iterated_path"] = json.dumps(data)
+            try:
+                logger_data["iterated_path"] = json.dumps(data)
+            except Exception:
+                logger_data["iterated_path"] = str(data)
 
     if f and data and isinstance(data, (list, tuple)):
         data = list(filter((lambda x: x is not None) if f is True else f, data))
