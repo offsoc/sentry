@@ -1,0 +1,23 @@
+This is a bunch of renaming and comment-adding that I've done as part of my travels through the enhancements code. No behavior changes.
+
+ref(grouping): Tweak enhancement naming and documentation
+
+
+This PR includes a few small refactors to enhancements code to either simplify logic or make the code easier to understand. No behavior changes.
+
+ref(grouping): Small enhancements refactors
+
+
+As a first step towards adding types to the enhancements code, this adds a number of new typeddicts and makes a handful of code changes which will be necessary once types are added to all of the enhancements methods, which will happen in a follow-up PR. (I split it up this way for no reason other than that hopefully it will be a little easier to review.)
+
+ref(grouping): Do preliminary typing work for enhancements
+
+
+This is a follow up to XXXXXX, which added a number of types to the enhancements code, actually using those types in type hints for all of the enhancement methods.
+
+ref(grouping): Add types to enhancement methods
+
+
+This is a slight refactoring of the code which creates fingerprint variants during grouping, to allow the hints to differentiate between built-in and custom fingerprints, and within custom fingerprints, between ones provided by the client and ones generated on the server.
+
+ref(grouping): Make custom fingerprint hints more specific
