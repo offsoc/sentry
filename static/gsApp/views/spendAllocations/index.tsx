@@ -330,7 +330,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
                   <StyledLearnMoreButton
                     organization={organization}
                     source="allocations-upsell"
-                    href="https://docs.sentry.io/product/accounts/quotas/#spend-allocation"
+                    href="https://docs.sentry.io/pricing/quotas/spend-allocation"
                     external
                   >
                     {t('Documentation')}
