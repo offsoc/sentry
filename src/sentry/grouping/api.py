@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 import sentry_sdk
 
 from sentry import options
-from sentry.db.models.fields.node import NodeData
 from sentry.grouping.component import (
     AppGroupingComponent,
     BaseGroupingComponent,
@@ -16,7 +15,12 @@ from sentry.grouping.component import (
     DefaultGroupingComponent,
     SystemGroupingComponent,
 )
-from sentry.grouping.enhancer import LATEST_VERSION, Enhancements
+from sentry.grouping.enhancer import (
+    DEFAULT_BASE64_ENHANCEMENTS_BY_ID,
+    DEFAULT_GROUPING_ENHANCEMENTS_BY_ID,
+    LATEST_VERSION,
+    Enhancements,
+)
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.strategies.base import DEFAULT_GROUPING_ENHANCEMENTS_BASE, GroupingContext
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
@@ -39,6 +43,9 @@ from sentry.grouping.variants import (
 )
 from sentry.issues.auto_source_code_config.constants import DERIVED_ENHANCEMENTS_OPTION_KEY
 from sentry.models.grouphash import GroupHash
+from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
+from sentry.utils.cache import cache
+from sentry.utils.hashlib import md5_text
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
@@ -76,6 +83,12 @@ class GroupingConfig(TypedDict):
     enhancements: str
 
 
+class EnhancementsConfig(TypedDict):
+    config_id: str
+    classifier_enhancements: str
+    contributes_enhancements: str
+
+
 class GroupingConfigLoader:
     """Load a grouping config based on global or project options"""
 
@@ -86,6 +99,32 @@ class GroupingConfigLoader:
             "id": self._get_config_id(project),
             "enhancements": self._get_enhancements(project),
         }
+
+    def get_enhancements_dict(self, project: Project) -> EnhancementsConfig:
+        config_id = self._get_config_id(project)
+        return {
+            "config_id": config_id,
+            "enhancements": self._get_enhancements(project),
+        }
+
+    def _get_differentiated_enhancements(self, project: Project) -> dict[str, str]:
+        custom_enhancements_option = project.get_option("sentry:grouping_enhancements")
+        derived_enhancements_option = project.get_option("sentry:derived_enhancements")
+
+        config_id = self._get_config_id(project)
+        default_enhancements = CONFIGURATIONS[config_id].enhancements_base
+
+        # TODO fix me!
+        return {}
+
+    def _check_enhancements_cache(
+        self,
+        rules_text: str,
+    ) -> str | None:
+        cache_key = f"{self.cache_prefix}{LATEST_ENHANCEMENT_VERSION}:{md5_text(
+                rules_text
+            ).hexdigest()}"
+        return cache.get(cache_key)
 
     def _get_enhancements(self, project: Project) -> str:
         derived_enhancements = project.get_option(DERIVED_ENHANCEMENTS_OPTION_KEY)
@@ -99,6 +138,7 @@ class GroupingConfigLoader:
         from sentry.utils.cache import cache
         from sentry.utils.hashlib import md5_text
 
+        breakpoint()
         cache_prefix = self.cache_prefix
         cache_prefix += f"{LATEST_VERSION}:"
         cache_key = (
@@ -107,9 +147,9 @@ class GroupingConfigLoader:
                 f"{enhancements_base}|{derived_enhancements}|{project_enhancements}"
             ).hexdigest()
         )
-        enhancements = cache.get(cache_key)
-        if enhancements is not None:
-            return enhancements
+        enhancements_as_base64 = cache.get(cache_key)
+        if enhancements_as_base64 is not None:
+            return enhancements_as_base64
 
         try:
             # Automatic enhancements are always applied first, so they can be overridden by
@@ -121,13 +161,13 @@ class GroupingConfigLoader:
                     if enhancements_string
                     else derived_enhancements
                 )
-            enhancements = Enhancements.from_config_string(
+            enhancements_as_base64 = Enhancements.from_rules_text(
                 enhancements_string, bases=[enhancements_base] if enhancements_base else []
             ).base64_string
         except InvalidEnhancerConfig:
-            enhancements = get_default_enhancements()
-        cache.set(cache_key, enhancements)
-        return enhancements
+            enhancements_as_base64 = get_default_enhancements()
+        cache.set(cache_key, enhancements_as_base64)
+        return enhancements_as_base64
 
     def _get_config_id(self, project: Project) -> str:
         raise NotImplementedError
@@ -179,16 +219,25 @@ def get_grouping_config_dict_for_project(project: Project) -> GroupingConfig:
     return loader.get_config_dict(project)
 
 
-def get_grouping_config_dict_for_event_data(data: NodeData, project: Project) -> GroupingConfig:
-    """Returns the grouping config for an event dictionary."""
-    return data.get("grouping_config") or get_grouping_config_dict_for_project(project)
-
-
 def get_default_enhancements(config_id: str | None = None) -> str:
     base: str | None = DEFAULT_GROUPING_ENHANCEMENTS_BASE
     if config_id is not None:
         base = CONFIGURATIONS[config_id].enhancements_base
-    return Enhancements.from_config_string("", bases=[base] if base else []).base64_string
+    old_enhancements = Enhancements.from_rules_text("", bases=[base] if base else [])
+    old = old_enhancements.base64_string
+    new = DEFAULT_BASE64_ENHANCEMENTS_BY_ID[base]
+    newer_enhancements = DEFAULT_GROUPING_ENHANCEMENTS_BY_ID[base]
+    newer = newer_enhancements.base64_string
+    if Enhancements.from_base64_string(new) != Enhancements.from_base64_string(old):
+        breakpoint()
+    if Enhancements.from_base64_string(new) != Enhancements.from_base64_string(newer):
+        breakpoint()
+    return Enhancements.from_rules_text("", bases=[base] if base else []).base64_string
+
+
+def get_default_encoded_enhancements(config_id: str = DEFAULT_GROUPING_CONFIG) -> str:
+    enhancements_id = CONFIGURATIONS[config_id].enhancements_base
+    return DEFAULT_BASE64_ENHANCEMENTS_BY_ID[enhancements_id]
 
 
 def get_projects_default_fingerprinting_bases(
@@ -226,7 +275,8 @@ def load_grouping_config(config_dict: GroupingConfig | None = None) -> StrategyC
     config_id = config_dict["id"]
     if config_id not in CONFIGURATIONS:
         raise GroupingConfigNotFound(config_id)
-    return CONFIGURATIONS[config_id](enhancements=config_dict["enhancements"])
+    strategy_config_class = CONFIGURATIONS[config_id]
+    return strategy_config_class(enhancements=config_dict["enhancements"])
 
 
 def load_default_grouping_config() -> StrategyConfiguration:

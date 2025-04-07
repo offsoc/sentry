@@ -20,6 +20,9 @@ class ProjectGroupingConfigsEndpoint(ProjectEndpoint):
     See GroupingConfigsEndpoint
     """
 
+    # TODO: This is identical to the GroupingConfigsEndpoint (the docstring bit about
+    # project-specific stuff is a lie). Can we consolidate?
+
     def get(self, request: Request, project) -> Response:
         configs = [
             config.as_dict() for config in sorted(CONFIGURATIONS.values(), key=lambda x: str(x.id))

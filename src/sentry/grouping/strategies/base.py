@@ -323,7 +323,7 @@ class StrategyConfiguration:
         }
 
 
-def create_strategy_configuration(
+def create_strategy_configuration_class(
     id: str | None,
     strategies: Sequence[str] | None = None,
     delegates: Sequence[str] | None = None,
@@ -335,7 +335,7 @@ def create_strategy_configuration(
     enhancements_base: str | None = None,
     fingerprinting_bases: Sequence[str] | None = None,
 ) -> type[StrategyConfiguration]:
-    """Declares a new strategy configuration.
+    """Creates a new strategy configuration class.
 
     Values can be inherited from a base configuration.  For strategies if there is
     a strategy of the same class it's replaced.  For delegates if there is a

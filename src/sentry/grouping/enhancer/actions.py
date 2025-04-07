@@ -18,6 +18,9 @@ ACTION_BITSIZE = 8
 # represented with `ACTION_BITSIZE` bits
 assert len(ACTIONS) < 1 << ACTION_BITSIZE  # This is 2^ACTION_BITSIZE
 ACTION_FLAGS = {
+    # Each key is the value to which to set the attribute (`in_app` or `contributes`), followed by
+    # the range (whether the action should apply to the given frame, frames above it, or frames
+    # below it)
     (True, None): 0,
     (True, "up"): 1,
     (True, "down"): 2,
@@ -66,6 +69,9 @@ class EnhancementAction:
 
     def _to_config_structure(self, version: int) -> int | list[str | int]:
         raise NotImplementedError()
+
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__} {str(self)}>"
 
 
 class FlagAction(EnhancementAction):
@@ -139,7 +145,7 @@ class FlagAction(EnhancementAction):
         idx: int,
         rule: EnhancementRule | None = None,
     ) -> None:
-        rule_hint = "stack trace rule"
+        rule_hint = "stacktrace rule"
         if rule:
             rule_hint = f"{rule_hint} ({rule.text})"
 
@@ -176,7 +182,8 @@ class VarAction(EnhancementAction):
         self.sets_contributes = self.var in ["min-frames", "max-frames"]
 
         try:
-            self.value = VarAction._VALUE_PARSERS[var](value)
+            parser = VarAction._VALUE_PARSERS[var]
+            self.value = parser(value)
         except (ValueError, TypeError):
             raise InvalidEnhancerConfig(f"Invalid value '{value}' for '{var}'")
         except KeyError:

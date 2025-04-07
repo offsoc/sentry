@@ -3,9 +3,10 @@ from typing import Any
 
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.grouping.api import GroupingConfigNotFound
+from sentry.grouping.api import GroupingConfigNotFound, get_contributing_variant_and_component
 from sentry.grouping.variants import BaseVariant
 from sentry.models.project import Project
+from sentry.seer.similarity.utils import get_stacktrace_string
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -35,7 +36,13 @@ def get_grouping_info(
     except GroupingConfigNotFound:
         raise ResourceDoesNotExist(detail="Unknown grouping config")
 
+    breakpoint()
     grouping_info = get_grouping_info_from_variants(variants)
+
+    contributing_variant, contributing_component = get_contributing_variant_and_component(variants)
+    if contributing_component and "stack-trace" in contributing_component.description:
+        # stacktrace_component
+        stacktrace_string = get_stacktrace_string(grouping_info)
 
     # One place we use this info is in the grouping info section of the event details page, and for
     # that we recalculate hashes/variants on the fly since we don't store the variants as part of

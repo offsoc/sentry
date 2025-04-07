@@ -4,7 +4,7 @@ import base64
 import logging
 import os
 import zlib
-from collections import Counter
+from collections import Counter, namedtuple
 from collections.abc import Sequence
 from functools import cached_property
 from typing import Any, Literal, NotRequired, TypedDict
@@ -32,8 +32,12 @@ logger = logging.getLogger(__name__)
 # So this leaves quite a bit of headroom for custom enhancement rules as well.
 RUST_CACHE = RustCache(1_000)
 
-VERSIONS = [2]
+# TODO: Move 3 to the end when we're ready for it to be the default
+VERSIONS = [3, 2]
 LATEST_VERSION = VERSIONS[-1]
+
+DEFAULT_GROUPING_ENHANCEMENTS_ID = "newstyle:2023-01-11"
+
 
 VALID_PROFILING_MATCHER_PREFIXES = (
     "stack.abs_path",
@@ -46,6 +50,10 @@ VALID_PROFILING_MATCHER_PREFIXES = (
     "package",  # stack.package
 )
 VALID_PROFILING_ACTIONS_SET = frozenset(["+app", "-app"])
+
+StructuredEnhancementsConfig = namedtuple(
+    "StructuredEnhancementsConfig", ["version", "classifier_rules", "contributes_rules"]
+)
 
 
 def merge_rust_enhancements(
@@ -74,6 +82,16 @@ def parse_rust_enhancements(
     """
     try:
         if source == "config_structure":
+            rules = Enhancements._from_config_structure(
+                msgpack.loads(input, raw=False),
+                RustEnhancements.from_config_structure(input, RUST_CACHE),
+            ).rules
+            bases = Enhancements._from_config_structure(
+                msgpack.loads(input, raw=False),
+                RustEnhancements.from_config_structure(input, RUST_CACHE),
+            ).bases
+            # if rules:
+            #     breakpoint()
             assert isinstance(input, bytes)
             return RustEnhancements.from_config_structure(input, RUST_CACHE)
         else:
@@ -139,6 +157,8 @@ class EnhancementsDict(TypedDict):
     bases: list[str]
     latest: bool
     rules: NotRequired[list[EnhancementRuleDict]]
+    classifier_rules: NotRequired[list[EnhancementRuleDict]]
+    contributes_rules: NotRequired[list[EnhancementRuleDict]]
 
 
 class Enhancements:
@@ -149,18 +169,101 @@ class Enhancements:
 
     def __init__(
         self,
-        rules: list[EnhancementRule],
+        rules: list[EnhancementRule] | tuple[list[EnhancementRule], list[EnhancementRule]],
         rust_enhancements: RustEnhancements,
         version: int | None = None,
         bases: list[str] | None = None,
         id: str | None = None,
     ):
         self.id = id
-        self.rules = rules
         self.version = version or LATEST_VERSION
         self.bases = bases or []
 
-        self.rust_enhancements = merge_rust_enhancements(self.bases, rust_enhancements)
+        # TODO: Once we're satisfied that versions 2 and 3 produce the same results, and we make 3
+        # the default, we can get rid of the version 2 code (here and in other methods) because
+        # version is included as part of the base64 string we stick in the cache and into the event
+        # (meaning any version 2 )
+        if self.version <= 2:
+            assert isinstance(rules, list)
+            self.rules = rules
+            self.rust_enhancements = merge_rust_enhancements(self.bases, rust_enhancements)
+        else:
+            # If we land here while loading rules from project options, they won't yet have been
+            # split up by type, so do it now. Note that rules which as originally written have both
+            # classifier and contributes actions will be split in two.
+            if isinstance(rules, list):
+                # Rules which set `in_app` or `category` on frames
+                self.classifier_rules = [
+                    rule.as_classifier_rule()  # Only include classifier actions
+                    for rule in rules
+                    if rule._has_classifier_actions
+                ]
+                # Rules which set `contributes` on frames and/or the stacktrace
+                self.contributes_rules = [
+                    rule._as_contributes_rule()  # Only include contributes actions
+                    for rule in rules
+                    if rule._has_contributes_actions
+                ]
+            # If we're loading rules from a base64 string (either from the cache or from an event)
+            else:
+                classifier_rules, contributes_rules = rules
+                self.classifier_rules = classifier_rules
+                self.contributes_rules = contributes_rules
+
+            classifier_rules_text = "\n".join(rule.text for rule in self.classifier_rules)
+            self.rust_classifier_enhancements = parse_rust_enhancements(
+                "config_string", classifier_rules_text
+            )
+            contributes_rules_text = "\n".join(rule.text for rule in self.contributes_rules)
+            self.rust_contributes_enhancements = parse_rust_enhancements(
+                "config_string", contributes_rules_text
+            )
+
+    # answer = (
+    #     custom_server_answer
+    #     or custom_client_answer
+    #     or derived_server_answer
+    #     or default_server_answer
+    #     or default_answer
+    # )
+
+    """
+    split rules up by family
+
+    do default and derived rules together, then
+
+    split +/-group rules into separate rules from other rules since they're applied separately
+        category/app rules
+            run both functions, all hints will be app hints since grouping rules have been split off
+            run defaults, derived, custom separately -> store results, hints separately
+            adapt hints based on source
+            run precedence, apply final answer
+        group rules
+            only run second function, all hints will be grouping hints since app rules have been split off
+            there's no client answer so can just jam defaults + derived + custom rules all together
+
+
+    3x Enhancements objects/None
+    each object has classifier rules, contribution rules
+    no more bases
+
+
+
+
+    """
+
+    def get_category_and_in_app_for_frame(
+        self,
+        frame: dict[str, Any],
+        platform: str,
+        rust_exception_data: RustExceptionData,
+    ) -> tuple[str | None, bool | None]:
+        match_frame = create_match_frame(frame, platform)
+        category, in_app = self.rust_enhancements.apply_modifications_to_frames(
+            [match_frame], rust_exception_data
+        )[0]
+
+    # ModificationResult = tuple[str | None, bool | None]
 
     def apply_category_and_updated_in_app_to_frames(
         self,
@@ -178,9 +281,12 @@ class Enhancements:
         """
         # TODO: Fix this type to list[MatchFrame] once it's fixed in ophio
         match_frames: list[Any] = [create_match_frame(frame, platform) for frame in frames]
+        rust_exception_data = make_rust_exception_data(exception_data)
+
+        # breakpoint()
 
         category_and_in_app_results = self.rust_enhancements.apply_modifications_to_frames(
-            match_frames, make_rust_exception_data(exception_data)
+            match_frames, rust_exception_data
         )
 
         for frame, (category, in_app) in zip(frames, category_and_in_app_results):
@@ -299,6 +405,9 @@ class Enhancements:
 
         return stacktrace_component
 
+    # TODO: This used to be used in the /grouping-enhancements endpoint, which no longer exists.
+    # (See https://github.com/getsentry/sentry/pull/12679) We can probably get rid of it, and the
+    # `EnhancementsDict` type.
     def as_dict(self, with_rules: bool = False) -> EnhancementsDict:
         rv: EnhancementsDict = {
             "id": self.id,
@@ -310,15 +419,23 @@ class Enhancements:
         }
         if with_rules:
             rv["rules"] = [x.as_dict() for x in self.rules]
+            rv["classifier_rules"] = [x.as_dict() for x in self.classifier_rules]
+            rv["contributes_rules"] = [x.as_dict() for x in self.contributes_rules]
         return rv
 
-    def _to_config_structure(self) -> list[Any]:
-        # TODO: Can we switch this to a tuple so we can type it more exactly?
-        return [
-            self.version,
-            self.bases,
-            [rule._to_config_structure(self.version) for rule in self.rules],
-        ]
+    def _to_config_structure(self) -> list[Any] | StructuredEnhancementsConfig:
+        if self.version <= 2:
+            return [
+                self.version,
+                self.bases,
+                [rule._to_config_structure(self.version) for rule in self.rules],
+            ]
+        else:
+            return StructuredEnhancementsConfig(
+                self.version,
+                [rule._to_config_structure(self.version) for rule in self.classifier_rules],
+                [rule._to_config_structure(self.version) for rule in self.contributes_rules],
+            )
 
     @cached_property
     def base64_string(self) -> str:
@@ -335,15 +452,50 @@ class Enhancements:
         data: list[Any],
         rust_enhancements: RustEnhancements,
     ) -> Enhancements:
-        version, bases, rules = data
+        version, bases, rule_config_structures = data
         if version not in VERSIONS:
             raise ValueError("Unknown version")
         return cls(
-            rules=[EnhancementRule._from_config_structure(rule, version=version) for rule in rules],
+            rules=[
+                EnhancementRule._from_config_structure(rule_config_structure, version=version)
+                for rule_config_structure in rule_config_structures
+            ],
             rust_enhancements=rust_enhancements,
             version=version,
             bases=bases,
         )
+
+    @classmethod
+    def _from_config_structure_split(
+        cls,
+        data: list[Any] | StructuredEnhancementsConfig,
+        rust_enhancements: RustEnhancements,
+    ) -> Enhancements:
+        if isinstance(data, list):
+            version, bases, rules = data
+            if version not in VERSIONS:
+                raise ValueError("Unknown version")
+            assert version <= 2
+            return cls(
+                rules=[
+                    EnhancementRule._from_config_structure(rule, version=version) for rule in rules
+                ],
+                rust_enhancements=rust_enhancements,
+                version=version,
+                bases=bases,
+            )
+        else:
+            version, classifier_rules, contributes_rules = data
+            if version not in VERSIONS:
+                raise ValueError("Unknown version")
+            return cls(
+                rules=[
+                    EnhancementRule._from_config_structure(rule, version=version) for rule in rules
+                ],
+                rust_enhancements=rust_enhancements,
+                version=version,
+                bases=bases,
+            )
 
     @classmethod
     def from_base64_string(cls, base64_string: str | bytes) -> Enhancements:
@@ -362,29 +514,73 @@ class Enhancements:
             else:
                 pickled = zlib.decompress(compressed_pickle)
 
-            rust_enhancements = parse_rust_enhancements("config_structure", pickled)
             config_structure = msgpack.loads(pickled, raw=False)
+            version = config_structure[0]
+            if version <= 2:
+                rust_enhancements = parse_rust_enhancements("config_structure", pickled)
 
             return cls._from_config_structure(config_structure, rust_enhancements)
         except (LookupError, AttributeError, TypeError, ValueError) as e:
-            raise ValueError("invalid stack trace rule config: %s" % e)
+            raise ValueError("invalid stacktrace rule config: %s" % e)
 
     @classmethod
     @sentry_sdk.tracing.trace
     def from_rules_text(
-        cls, s: str, bases: list[str] | None = None, id: str | None = None
+        cls,
+        s: str,
+        bases: list[str] | None = None,
+        id: str | None = None,
+        version: int | None = None,
     ) -> Enhancements:
         """Create an `Enhancements` object from a text blob containing stacktrace rules"""
         rust_enhancements = parse_rust_enhancements("config_string", s)
 
         rules = parse_enhancements(s)
 
+        # Rules which set `in_app` or `category` on frames
+        classifier_rules = [
+            rule.as_classifier_rule()  # Only include classifier actions
+            for rule in rules
+            if rule._has_classifier_actions
+        ]
+        # Rules which set `contributes` on frames and/or the stacktrace
+        contributes_rules = [
+            rule._as_contributes_rule()  # Only include contributes actions
+            for rule in rules
+            if rule._has_contributes_actions
+        ]
+        classifier_rules_text = "\n".join(rule.text for rule in classifier_rules)
+        rust_classifier_enhancements = parse_rust_enhancements(
+            "config_string", classifier_rules_text
+        )
+        contributes_rules_text = "\n".join(rule.text for rule in contributes_rules)
+        rust_contributes_enhancements = parse_rust_enhancements(
+            "config_string", contributes_rules_text
+        )
+
         return Enhancements(
             rules,
             rust_enhancements=rust_enhancements,
+            version=version,
             bases=bases,
             id=id,
         )
+
+    @classmethod
+    def get_default_enhancements(cls, grouping_config_id: str | None = None) -> Enhancements:
+        from sentry.grouping.strategies.configurations import STRATEGY_CONFIG_CLASSES_BY_ID
+
+        enhancements_id = DEFAULT_GROUPING_ENHANCEMENTS_ID
+        if grouping_config_id is not None:
+            strategy_config = STRATEGY_CONFIG_CLASSES_BY_ID[grouping_config_id]
+            enhancements_id = strategy_config.enhancements_base or DEFAULT_GROUPING_ENHANCEMENTS_ID
+
+        old = cls.from_rules_text("", bases=[enhancements_id] if enhancements_id else [])
+        new = DEFAULT_GROUPING_ENHANCEMENTS_BY_ID[enhancements_id]
+        if new.base64_string != old.base64_string:
+            breakpoint()
+
+        return DEFAULT_GROUPING_ENHANCEMENTS_BY_ID[enhancements_id]
 
 
 def _load_configs() -> dict[str, Enhancements]:
@@ -403,5 +599,12 @@ def _load_configs() -> dict[str, Enhancements]:
     return enhancement_bases
 
 
-ENHANCEMENT_BASES = _load_configs()
+# A map of config ids to `Enhancement` objects
+ENHANCEMENT_BASES: dict[str, Enhancements] = _load_configs()
+DEFAULT_GROUPING_ENHANCEMENTS_BY_ID = ENHANCEMENT_BASES
+DEFAULT_BASE64_ENHANCEMENTS_BY_ID = {
+    config_id: enhancements.base64_string
+    for config_id, enhancements in DEFAULT_GROUPING_ENHANCEMENTS_BY_ID.items()
+}
+
 del _load_configs

@@ -1,7 +1,7 @@
 from sentry.grouping.strategies.base import (
     RISK_LEVEL_HIGH,
     StrategyConfiguration,
-    create_strategy_configuration,
+    create_strategy_configuration_class,
 )
 
 # TODO: Now that users have no control over what config they're using, can we get rid of risk level?
@@ -19,10 +19,11 @@ from sentry.grouping.strategies.base import (
 
 # The full mapping of all known configurations.
 CONFIGURATIONS: dict[str, type[StrategyConfiguration]] = {}
+STRATEGY_CONFIG_CLASSES_BY_ID = CONFIGURATIONS
 
 # The implied base strategy *every* strategy inherits from if no
 # base is defined.
-BASE_STRATEGY = create_strategy_configuration(
+BASE_STRATEGY = create_strategy_configuration_class(
     None,
     # Strategy priority is enforced programaticaly via the `score` argument to the `@strategy`
     # decorator (rather than by the order they're listed here), but they are nonetheless listed here
@@ -77,7 +78,7 @@ def register_strategy_config(id: str, **kwargs) -> type[StrategyConfiguration]:
         kwargs["base"] = CONFIGURATIONS[kwargs["base"]]
     else:
         kwargs["base"] = BASE_STRATEGY
-    strategy_config = create_strategy_configuration(id, **kwargs)
+    strategy_config = create_strategy_configuration_class(id, **kwargs)
     CONFIGURATIONS[id] = strategy_config
     return strategy_config
 

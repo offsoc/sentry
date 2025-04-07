@@ -1,0 +1,38 @@
+
+
+CONFIGURATIONS -> id -> StrategyConfiguration class
+DEFAULT_ENHANCEMENTS -> id -> Enhancements (no base) - do we need this, if we have the above?
+
+
+make apply cat/in-app into function, not method (rename to classification) see "first pass" below
+
+
+Enhancements live on stategy config
+GroupingConfig is really just enhancement strings
+
+grouping_config_id -> name of config
+enhancement_config? -> dict of enhancement id and base64 enhancements
+grouping_config -> StrategyConfig object
+
+
+make grouping info endpoint calculate both and test them against each other?
+
+
+SC instance is created, including project specifics, in api.load_grouping_config (rename?)
+  uses config dict with base64 enhancements, config id
+
+SC needs to hold multiple Enhancements
+Enhancements need to hold two sets of rules, two sets of rust enhancements
+Add base64 string to Enhancements object
+
+first pass (classification)
+  call both functions, record results x3 (default, derived, then custom)
+  determine winning answer, only then actually modify frame
+  with hint results, use source to modify hint message
+
+  test that second function never comes back with new contributes values, only hints
+
+second pass (contribution)
+  call contribution function, record results x3 (default, derived, then custom)
+  determine winning answer, only then actually modify frame
+  with hint results, use source to modify hint message
