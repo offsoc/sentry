@@ -74,6 +74,9 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
         regex_pattern_keys=REGEX_PATTERN_KEYS, experiments=(UniqueIdExperiment,)
     )
 
+    # This needs to be defined inside of `normalize_message_for_grouping` because it keeps the event
+    # in a closure. (It's a callback passed to `parameterize_all`, so we don't get to choose what
+    # gets passed in.)
     def _should_run_experiment(experiment_name: str) -> bool:
         return bool(
             event.project_id
