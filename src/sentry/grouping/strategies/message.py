@@ -55,7 +55,7 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
         experiments=(UniqueIdExperiment,),
     )
 
-    def _shoudl_run_experiment(experiment_name: str) -> bool:
+    def _should_run_experiment(experiment_name: str) -> bool:
         return bool(
             event.project_id
             and (
@@ -83,7 +83,7 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
             )
         )
 
-    normalized = parameterizer.parameterize_all(trimmed, _shoudl_run_experiment)
+    normalized = parameterizer.parameterize_all(trimmed, _should_run_experiment)
 
     for experiment in parameterizer.get_successful_experiments():
         if share_analytics and experiment.counter < 100:
