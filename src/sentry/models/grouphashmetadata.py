@@ -60,6 +60,12 @@ class HashBasis(models.TextChoices):
     # our categorization logic.
     UNKNOWN = "unknown"
 
+    # TODO: test_frame_uses_context_line_over_function has no context line ?? Same with symbol over function
+    # TODO: HPKP obsolete? See if we get any once we have metrics. https://developer.mozilla.org/en-US/docs/Glossary/HPKP
+    # TODO: test_hash_without_system_frames... has a system frame?
+    # TODO: exception-groups-bad-missing-parent.json isn't missing parent
+    # TODO: sometimes `contributes` is None - that seems wrong
+
 
 @region_silo_model
 class GroupHashMetadata(Model):

@@ -19,6 +19,11 @@ if TYPE_CHECKING:
     from sentry.grouping.strategies.base import StrategyConfiguration
 
 
+# TODO: Why does `exception` fall under app/system when `message` falls under `default`? What does
+# it mean for an exception to be in- or out-of-app, given that we only fall back to that when we
+# can't use the stacktrace?
+
+
 class FingerprintVariantMetadata(TypedDict):
     values: list[str]
     client_values: NotRequired[list[str]]
@@ -100,6 +105,12 @@ class FallbackVariant(BaseVariant):
         return hash_from_values([])
 
 
+# TODO: Is this still used?
+# See:
+# https://github.com/getsentry/sentry/pull/39119
+# https://github.com/getsentry/sentry/pull/39232
+# https://github.com/getsentry/sentry/pull/47862
+# https://github.com/getsentry/sentry/commits/master/static/app/components/events/groupingInfo/groupingVariant.tsx
 class PerformanceProblemVariant(BaseVariant):
     """
     Applies only to transaction events! Transactions are not subject to the
@@ -217,6 +228,7 @@ class BuiltInFingerprintVariant(CustomFingerprintVariant):
 
     @property
     def description(self) -> str:
+        # TODO: Add a hyphen here, and check places we use this (`grouphash_metadata`, tests?)
         return "Sentry defined fingerprint"
 
 
@@ -255,6 +267,9 @@ class SaltedComponentVariant(ComponentVariant):
         ComponentVariant.__init__(self, component, contributing_component, strategy_config)
         self.values = fingerprint
         self.fingerprint_info = fingerprint_info
+
+        # TODO: use super above
+        # TODO: s/`values`/`fingerprint` (if possible - it might not be because it might need to match ComponentVariant)
 
     @property
     def description(self) -> str:

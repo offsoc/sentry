@@ -474,6 +474,15 @@ def _single_stacktrace_variant(
         exception_data=context["exception_data"],
     )
 
+    if (
+        variant_name == "app"
+        and len(frames) > 0
+        and not found_in_app_frame
+        and stacktrace_component.contributes
+    ):
+        # breakpoint()
+        pass
+
     # TODO: Ideally this hint would get set by the rust enhancer. Right now the only stacktrace
     # component hint it sets is one about ignoring stacktraces with contributing frames because the
     # number of contributing frames isn't big enough. In that case it also sets `contributes` to
@@ -488,6 +497,7 @@ def _single_stacktrace_variant(
             # If there are in-app frames but the stacktrace nontheless doesn't contribute, it must
             # be because all of the frames got marked as non-contributing in the enhancer
             if found_in_app_frame:
+                # TODO: Add a test case for this branch
                 frames_description = "contributing frames"
             else:
                 frames_description = "in-app frames"

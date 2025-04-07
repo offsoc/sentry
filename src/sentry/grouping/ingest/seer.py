@@ -186,6 +186,24 @@ def _has_custom_fingerprint(event: Event, variants: dict[str, BaseVariant]) -> b
     return False
 
 
+# If you'd set LeakyBucket to burst rate X and drip rate to Y per second, it's would give you
+# similar result as setting SlidingWindow to quota X and window length X/Y seconds and granularity
+# of at least 1/Y seconds
+
+# max 30/60 sec
+# sustained 5/60 sec (drip)
+# window 6 * 60 sec
+# granularity 12 sec (1 drop every 12 sec = 5 drops/min)
+
+
+# TODO: Switch to using a slide window and/or leaky bucket rate limiter. (For the latter, we can
+# mimic a leaky bucket with a burst rate of X/min and a drip rate of Y/min by making a sliding window with
+# quota X, window length X/Y min (because it's the amount of time it would take the full quota to drip
+# out), and granularity of at least 1/Y seconds (because you need Y granules to have one
+# drip/granule). For example, for a max burst rate of 30/min and a sustained rate (drip rate) of
+# 5/min, the window would need to be 6 minutes long (to drip the all 30 requests from a full bucket)
+# and - assuming we want to drip one request at a time - the granularity would need to be 12 seconds
+# (because 1 drip every 12 sec adds up to our 5/min drip rate)
 def _ratelimiting_enabled(event: Event, project: Project) -> bool:
     """
     Check both the global and project-based Seer similarity ratelimits.

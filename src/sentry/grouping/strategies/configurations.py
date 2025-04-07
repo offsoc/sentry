@@ -4,6 +4,19 @@ from sentry.grouping.strategies.base import (
     create_strategy_configuration,
 )
 
+# TODO: Now that users have no control over what config they're using, can we get rid of risk level?
+# (Changelog *might* still be useful, just for us, but then again, maybe that's what github is for?)
+# If we do get rid of one or both, update the readme in __init__.py.
+
+# TODO: So "delegate" strategies are essential just minor strategies - things which don't become the
+# hash basis but which create components deeper in the tree. Can we give them a more obvious name?
+
+# TODO: Strategies only apply to component variants, and are really just tree-builders. Could they
+# have a better name?
+
+# TODO: Is there a reason everything couldn't just be a component? Variants are basically just
+# components which can only exist at the root, and delegates are just components which can't be roots
+
 # The full mapping of all known configurations.
 CONFIGURATIONS: dict[str, type[StrategyConfiguration]] = {}
 
