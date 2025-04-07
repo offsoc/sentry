@@ -519,7 +519,7 @@ def stacktrace_variant_processor(
     interface=SingleException,
 )
 def single_exception(
-    interface: SingleException, event: Event, context: GroupingContext, **meta: Any
+    interface: SingleException, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
     exception = interface
 
@@ -552,7 +552,7 @@ def single_exception(
             context["exception_data"] = exception.to_json()
             stacktrace_components_by_variant: dict[str, StacktraceGroupingComponent] = (
                 context.get_grouping_components_by_variant(
-                    exception.stacktrace, event=event, **meta
+                    exception.stacktrace, event=event, **kwargs
                 )
             )
     else:
