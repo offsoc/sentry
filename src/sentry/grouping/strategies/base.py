@@ -235,10 +235,10 @@ class Strategy(Generic[ConcreteInterface]):
     ) -> None | BaseGroupingComponent[Any] | ReturnedVariants:
         """Given a specific variant this calculates the grouping component."""
         args = []
-        iface = event.interfaces.get(self.interface_name)
-        if iface is None:
+        interface = event.interfaces.get(self.interface_name)
+        if interface is None:
             return None
-        args.append(iface)
+        args.append(interface)
         with context:
             # If a variant is passed put it into the context
             if variant is not None:
