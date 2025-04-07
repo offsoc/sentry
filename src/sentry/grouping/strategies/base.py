@@ -228,6 +228,7 @@ class Strategy(Generic[ConcreteInterface]):
         """
         self.variant_processor_func = func
         return func
+        # TODO: figure out if variant is ever passed (no, I think?) and then fix name and docstring below
 
     def get_grouping_component(
         self, event: Event, context: GroupingContext, variant: str | None = None
@@ -241,6 +242,7 @@ class Strategy(Generic[ConcreteInterface]):
         with context:
             # If a variant is passed put it into the context
             if variant is not None:
+                breakpoint()
                 context["variant"] = variant
             return self(event=event, context=context, *args)
 
@@ -254,6 +256,7 @@ class Strategy(Generic[ConcreteInterface]):
         if components_by_variant is None:
             return {}
 
+        # TODO: Get rid of this when combining functions
         assert isinstance(components_by_variant, dict)
 
         final_components_by_variant = {}
