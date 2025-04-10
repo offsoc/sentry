@@ -32,6 +32,56 @@ def get_redis_client() -> RetryingRedisCluster:
     return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
 
 
+class AbastractDetectorState(abc.ABC):
+    @property
+    @abc.abstractmethod
+    def state_update(self) -> tuple[bool, DetectorPriorityLevel]:
+        """
+        The state updates that need to be made for this detector.
+        """
+        pass
+
+    @abc.abstractmethod
+    def save(self):
+        """
+        Save the state to the data store
+        """
+        pass
+
+    @abc.abstractmethod
+    def get(self) -> tuple[bool, DetectorPriorityLevel]:
+        """
+        Returns the current state of this detector.
+        """
+        pass
+
+
+class RedisDetectorState(AbastractDetectorState):
+    state_update: tuple[bool, DetectorPriorityLevel] = (False, DetectorPriorityLevel.OK)
+    counter_updates = dict[str, int | None] = {}
+
+    def save(self):
+        pass
+
+    def get(self):
+        pass
+
+
+class SQLDetectorState(AbastractDetectorState):
+    state_update: tuple[bool, DetectorPriorityLevel] = (False, DetectorPriorityLevel.OK)
+
+    def save(self):
+        pass
+
+    def get(self):
+        pass
+
+
+# TODO - Refactors for StatefulDetectorHandler -- need to think about the abstractions being exported
+# - Refactor the DetectorState out
+# - Create a GroupingDetectorHandler
+# - Create a StatefulDetectorHandler using the DetectorState classes
+# - Create a GroupingStatefulDetectorHandler that composes the above handlers.
 class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
     def __init__(self, detector: Detector):
         super().__init__(detector)
