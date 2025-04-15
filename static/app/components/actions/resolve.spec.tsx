@@ -242,7 +242,7 @@ describe('ResolveActions', function () {
     await userEvent.click(screen.getByLabelText('More resolve options'));
     expect(await screen.findByText('The next release')).toBeInTheDocument();
     expect(
-      await screen.findByText('The next release after the current one')
+      await screen.findByText('The issue will be fixed in the next upcoming release')
     ).toBeInTheDocument();
   });
 

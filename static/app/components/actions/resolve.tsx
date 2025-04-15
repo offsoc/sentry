@@ -225,7 +225,9 @@ function ResolveActions({
       {
         key: 'next-release',
         label: t('The next release'),
-        details: actionTitle ? actionTitle : t('The next release after the current one'),
+        details: actionTitle
+          ? actionTitle
+          : t('The issue will be fixed in the next upcoming release'),
         onAction: () => onActionOrConfirm(handleNextReleaseResolution),
       },
       {
