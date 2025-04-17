@@ -40,10 +40,10 @@ const StyledChonkBadge = chonkStyled('span')<ChonkBadgeProps>`
   line-height: initial;
   height: 20px;
   font-weight: ${p => p.theme.fontWeightBold};
-  padding: ${p => p.theme.space.micro} ${p => p.theme.space.mini};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
 
   // @TODO(jonasbadalic): this exists on the old badge, but should be removed
-  margin-left: ${p => p.theme.space.mini};
+  margin-left: ${p => p.theme.space.xs};
 `;
 
 function makeChonkBadgeTheme(

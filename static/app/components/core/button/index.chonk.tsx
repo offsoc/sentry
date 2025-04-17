@@ -295,12 +295,12 @@ function getChonkButtonSizeTheme(
     case 'mini':
       return {
         borderRadius: theme.radius.mini,
-        padding: `${theme.space.micro} ${theme.space.mini}`,
+        padding: `${theme.space['2xs']} ${theme.space.xs}`,
       };
     case 'small':
       return {
         borderRadius: theme.radius.sm,
-        padding: `${theme.space.mini} ${theme.space.sm}`,
+        padding: `${theme.space.xs} ${theme.space.sm}`,
       };
     case 'medium':
       return {
