@@ -12,7 +12,6 @@ type ChonkButtonType =
   | 'warning'
   | 'danger'
   | 'link';
-type ChonkButtonSize = 'mini' | 'small' | 'medium' | 'large';
 
 function chonkPriorityToType(priority: ButtonProps['priority']): ChonkButtonType {
   switch (priority) {
@@ -35,28 +34,13 @@ function chonkPriorityToType(priority: ButtonProps['priority']): ChonkButtonType
   }
 }
 
-function chonkSizeMapping(size: ButtonProps['size']): ChonkButtonSize {
-  switch (size) {
-    case 'zero':
-      return 'mini';
-    case 'xs':
-      return 'small';
-    case 'sm':
-      return 'medium';
-    case 'md':
-      return 'large';
-    default:
-      return 'medium';
-  }
-}
-
 export function getChonkButtonStyles(
   p: Pick<ButtonProps, 'size' | 'priority' | 'busy' | 'disabled' | 'borderless'> & {
     theme: DO_NOT_USE_ChonkTheme;
   }
 ): StrictCSSObject {
   const type = chonkPriorityToType(p.priority);
-  const size = chonkSizeMapping(p.size);
+  const size = p.size;
 
   return {
     position: 'relative',
@@ -288,28 +272,28 @@ function getChonkButtonTheme(type: ChonkButtonType, theme: DO_NOT_USE_ChonkTheme
 }
 
 function getChonkButtonSizeTheme(
-  size: ChonkButtonSize,
+  size: ButtonProps['size'],
   theme: DO_NOT_USE_ChonkTheme
 ): StrictCSSObject {
   switch (size) {
-    case 'mini':
+    case 'zero':
       return {
         borderRadius: theme.radius.xs,
         padding: `${theme.space['2xs']} ${theme.space.xs}`,
       };
-    case 'small':
+    case 'xs':
       return {
         borderRadius: theme.radius.sm,
         padding: `${theme.space.xs} ${theme.space.sm}`,
       };
-    case 'medium':
-      return {
-        borderRadius: theme.radius.REMOVE_ME,
-        padding: `${theme.space.sm} ${theme.space.md}`,
-      };
-    case 'large':
+    case 'sm':
       return {
         borderRadius: theme.radius.md,
+        padding: `${theme.space.sm} ${theme.space.md}`,
+      };
+    case 'md':
+      return {
+        borderRadius: theme.radius.lg,
         padding: `${theme.space.md} ${theme.space.lg}`,
       };
     default:
