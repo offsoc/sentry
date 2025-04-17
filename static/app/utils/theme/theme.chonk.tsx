@@ -382,13 +382,14 @@ const space = {
 } as const;
 
 const radius = {
-  nano: '1px',
-  micro: '2px',
-  mini: '3px',
+  none: '0px',
+  '3xs': '1px',
+  '2xs': '2px',
+  xs: '3px',
   sm: '4px',
-  md: '5px',
-  lg: '6px',
-  xl: '8px',
+  REMOVE_ME: '5px',
+  md: '6px',
+  lg: '8px',
   // @TODO(jonasbadalic): do we need an xl?
 } as const;
 

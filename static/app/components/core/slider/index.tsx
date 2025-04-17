@@ -140,7 +140,7 @@ function ChonkSliderStyles(p: {theme: DO_NOT_USE_ChonkTheme}) {
     appearance: none;
     width: 100%;
     background: transparent;
-    border-radius: ${p.theme.radius.lg};
+    border-radius: ${p.theme.radius.md};
     transition: box-shadow 0.1s;
     box-shadow:
       0 0 0 8px transparent,
@@ -173,7 +173,7 @@ function ChonkSliderStyles(p: {theme: DO_NOT_USE_ChonkTheme}) {
       cursor: pointer;
       border: 1px solid ${p.theme.colors.chonk.blue100};
       background: ${p.theme.colors.surface300};
-      border-radius: ${p.theme.radius.micro};
+      border-radius: ${p.theme.radius['2xs']};
       box-shadow: 0px 3px 0px 0px ${p.theme.colors.surface100} inset;
     }
 
@@ -195,7 +195,7 @@ function ChonkSliderStyles(p: {theme: DO_NOT_USE_ChonkTheme}) {
       cursor: pointer;
       border: 1px solid ${p.theme.colors.surface100};
       background: ${p.theme.colors.surface300};
-      border-radius: ${p.theme.radius.micro};
+      border-radius: ${p.theme.radius['2xs']};
       box-shadow: 0px 3px 0px 0px ${p.theme.colors.surface100} inset;
     }
 

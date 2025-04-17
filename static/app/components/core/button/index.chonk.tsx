@@ -294,7 +294,7 @@ function getChonkButtonSizeTheme(
   switch (size) {
     case 'mini':
       return {
-        borderRadius: theme.radius.mini,
+        borderRadius: theme.radius.xs,
         padding: `${theme.space['2xs']} ${theme.space.xs}`,
       };
     case 'small':
@@ -304,12 +304,12 @@ function getChonkButtonSizeTheme(
       };
     case 'medium':
       return {
-        borderRadius: theme.radius.md,
+        borderRadius: theme.radius.REMOVE_ME,
         padding: `${theme.space.sm} ${theme.space.md}`,
       };
     case 'large':
       return {
-        borderRadius: theme.radius.lg,
+        borderRadius: theme.radius.md,
         padding: `${theme.space.md} ${theme.space.lg}`,
       };
     default:

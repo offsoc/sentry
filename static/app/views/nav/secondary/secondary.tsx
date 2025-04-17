@@ -229,7 +229,7 @@ const ChonkItem = chonkStyled(Link)<ItemProps>`
   position: relative;
   color: ${p => p.theme.textColor};
   padding: ${p => (p.layout === NavLayout.MOBILE ? `${space(0.75)} ${space(1.5)} ${space(0.75)} 48px` : `${space(0.75)} ${space(1.5)}`)};
-  border-radius: ${p => (p.layout === NavLayout.MOBILE ? '0' : p.theme.radius.lg)};
+  border-radius: ${p => (p.layout === NavLayout.MOBILE ? '0' : p.theme.radius.md)};
 
   /* Disable interaction state layer */
   > [data-isl] {
@@ -245,7 +245,7 @@ const ChonkItem = chonkStyled(Link)<ItemProps>`
     width: 4px;
     height: 20px;
     left: -${space(1.5)};
-    border-radius: ${p => p.theme.radius.micro};
+    border-radius: ${p => p.theme.radius['2xs']};
     background-color: ${p => p.theme.colors.blue400};
     transition: opacity 0.1s ease-in-out;
     opacity: 0;
