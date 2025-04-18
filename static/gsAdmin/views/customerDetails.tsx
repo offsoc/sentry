@@ -91,7 +91,7 @@ export default function CustomerDetails() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const api = useApi();
+  const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const SUBSCRIPTION_QUERY_KEY = makeSubscriptionQueryKey(orgId);
   const ORGANIZATION_QUERY_KEY = makeOrganizationQueryKey(orgId);
