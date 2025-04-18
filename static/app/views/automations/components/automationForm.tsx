@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/core/button';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
+import useDrawer from 'sentry/components/globalDrawer';
 import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DebugForm} from 'sentry/components/workflowEngine/form/debug';
 import {IconAdd, IconEdit} from 'sentry/icons';
@@ -18,6 +19,7 @@ import {
   initialAutomationBuilderState,
   useAutomationBuilderReducer,
 } from 'sentry/views/automations/components/automationBuilderContext';
+import ConnectedMonitorsDrawer from 'sentry/views/automations/components/connectedMonitorsDrawer';
 import type {MonitorsData} from 'sentry/views/automations/components/connectedMonitorsList';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
 
@@ -42,6 +44,8 @@ export default function AutomationForm() {
     model.setValue('name', title);
   }, [title, model]);
 
+  const connectedMonitors = monitors.filter(monitor => monitor.connect.connected);
+
   return (
     <Form
       hideFooter
@@ -53,11 +57,13 @@ export default function AutomationForm() {
           <SectionBody>
             <Heading>{t('Connected Monitors')}</Heading>
             <TableWrapper>
-              <StyledConnectedMonitorsList monitors={data} />
+              <StyledConnectedMonitorsList monitors={connectedMonitors} />
             </TableWrapper>
             <ButtonWrapper justify="space-between">
               <Button icon={<IconAdd />}>{t('Create New Monitor')}</Button>
-              <Button icon={<IconEdit />}>{t('Edit Monitors')}</Button>
+              <Button icon={<IconEdit />} onClick={openMonitorsDrawer}>
+                {t('Edit Monitors')}
+              </Button>
             </ButtonWrapper>
           </SectionBody>
           <SectionBody>
