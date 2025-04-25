@@ -302,6 +302,11 @@ const appConfig: webpack.Configuration = {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg|mp4)($|\?)/,
         type: 'asset',
       },
+      {
+        test: /\.svg$/,
+        resourceQuery: /raw/,
+        type: 'asset/source',
+      },
     ],
     noParse: [
       // don't parse known, pre-built javascript files (improves webpack perf)

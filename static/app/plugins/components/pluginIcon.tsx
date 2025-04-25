@@ -1,32 +1,32 @@
 import styled from '@emotion/styled';
-import asana from 'sentry-logos/logo-asana.svg';
-import aws from 'sentry-logos/logo-aws.svg';
-import vsts from 'sentry-logos/logo-azure.svg';
-import bitbucket from 'sentry-logos/logo-bitbucket.svg';
-import bitbucketserver from 'sentry-logos/logo-bitbucket-server.svg';
-import placeholder from 'sentry-logos/logo-default.svg';
-import discord from 'sentry-logos/logo-discord.svg';
-import github from 'sentry-logos/logo-github.svg';
-import githubEnterprise from 'sentry-logos/logo-github-enterprise.svg';
-import gitlab from 'sentry-logos/logo-gitlab.svg';
-import heroku from 'sentry-logos/logo-heroku.svg';
-import jira from 'sentry-logos/logo-jira.svg';
-import jiraserver from 'sentry-logos/logo-jira-server.svg';
-import jumpcloud from 'sentry-logos/logo-jumpcloud.svg';
-import msteams from 'sentry-logos/logo-msteams.svg';
-import opsgenie from 'sentry-logos/logo-opsgenie.svg';
-import pagerduty from 'sentry-logos/logo-pagerduty.svg';
-import pivotal from 'sentry-logos/logo-pivotaltracker.svg';
-import pushover from 'sentry-logos/logo-pushover.svg';
-import redmine from 'sentry-logos/logo-redmine.svg';
-import segment from 'sentry-logos/logo-segment.svg';
-import sentry from 'sentry-logos/logo-sentry.svg';
-import slack from 'sentry-logos/logo-slack.svg';
-import trello from 'sentry-logos/logo-trello.svg';
-import twilio from 'sentry-logos/logo-twilio.svg';
-import vercel from 'sentry-logos/logo-vercel.svg';
-import victorops from 'sentry-logos/logo-victorops.svg';
-import visualstudio from 'sentry-logos/logo-visualstudio.svg';
+import asana from 'sentry-logos/logo-asana.svg?raw';
+import aws from 'sentry-logos/logo-aws.svg?raw';
+import vsts from 'sentry-logos/logo-azure.svg?raw';
+import bitbucket from 'sentry-logos/logo-bitbucket.svg?raw';
+import bitbucketserver from 'sentry-logos/logo-bitbucket-server.svg?raw';
+import placeholder from 'sentry-logos/logo-default.svg?raw';
+import discord from 'sentry-logos/logo-discord.svg?raw';
+import github from 'sentry-logos/logo-github.svg?raw';
+import githubEnterprise from 'sentry-logos/logo-github-enterprise.svg?raw';
+import gitlab from 'sentry-logos/logo-gitlab.svg?raw';
+import heroku from 'sentry-logos/logo-heroku.svg?raw';
+import jira from 'sentry-logos/logo-jira.svg?raw';
+import jiraserver from 'sentry-logos/logo-jira-server.svg?raw';
+import jumpcloud from 'sentry-logos/logo-jumpcloud.svg?raw';
+import msteams from 'sentry-logos/logo-msteams.svg?raw';
+import opsgenie from 'sentry-logos/logo-opsgenie.svg?raw';
+import pagerduty from 'sentry-logos/logo-pagerduty.svg?raw';
+import pivotal from 'sentry-logos/logo-pivotaltracker.svg?raw';
+import pushover from 'sentry-logos/logo-pushover.svg?raw';
+import redmine from 'sentry-logos/logo-redmine.svg?raw';
+import segment from 'sentry-logos/logo-segment.svg?raw';
+import sentry from 'sentry-logos/logo-sentry.svg?raw';
+import slack from 'sentry-logos/logo-slack.svg?raw';
+import trello from 'sentry-logos/logo-trello.svg?raw';
+import twilio from 'sentry-logos/logo-twilio.svg?raw';
+import vercel from 'sentry-logos/logo-vercel.svg?raw';
+import victorops from 'sentry-logos/logo-victorops.svg?raw';
+import visualstudio from 'sentry-logos/logo-visualstudio.svg?raw';
 
 // Map of plugin id -> logo filename
 const PLUGIN_ICONS = {
@@ -78,9 +78,11 @@ export interface PluginIconProps extends React.RefAttributes<HTMLDivElement> {
 
 export function PluginIcon({pluginId, size = 20, ref}: PluginIconProps) {
   return (
-    <StyledPluginIconContainer size={size}>
-      <StyledPluginIcon size={size} pluginSrc={getPluginIconSource(pluginId)} ref={ref} />
-    </StyledPluginIconContainer>
+    <StyledPluginIconContainer
+      size={size}
+      ref={ref}
+      dangerouslySetInnerHTML={{__html: getPluginIconSource(pluginId)}}
+    />
   );
 }
 
@@ -90,28 +92,10 @@ const StyledPluginIconContainer = styled('div')<{
   height: ${p => p.size}px;
   width: ${p => p.size}px;
   min-width: ${p => p.size}px;
-  background-color: ${p => p.theme.white};
   border-radius: 2px;
   display: flex;
   align-items: center;
   justify-content: center;
-`;
-
-const StyledPluginIcon = styled('div')<{
-  pluginSrc: string;
-  size: number;
-}>`
-  position: relative;
-  height: ${p => p.size - p.size * 0.2}px;
-  width: ${p => p.size - p.size * 0.2}px;
-  min-width: ${p => p.size - p.size * 0.2}px;
-  border-radius: 2px;
-  border: 0;
-  display: inline-block;
-  background-size: contain;
-  background-position: center center;
-  background-repeat: no-repeat;
-  background-image: url(${p => p.pluginSrc});
 `;
 
 function getPluginIconSource(
