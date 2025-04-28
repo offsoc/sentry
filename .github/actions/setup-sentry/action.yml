@@ -88,6 +88,11 @@ runs:
         cache-dependency-path: ${{ inputs.workdir }}/requirements-dev-frozen.txt
         install-cmd: cd ${{ inputs.workdir }} && pip install -r requirements-dev-frozen.txt
 
+    - name: hax
+      shell: bash --noprofile --norc -eo pipefail -ux {0}
+      run: |
+        sed -i -r 's/namedtuple\("/namedtuple("Email/g' .venv/lib/python3.13/site-packages/django/core/mail/message.py
+
     - name: Set up outputs
       id: config
       env:
