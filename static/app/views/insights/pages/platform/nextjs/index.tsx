@@ -13,7 +13,7 @@ import {SlowSSRWidget} from 'sentry/views/insights/pages/platform/nextjs/slowSsr
 import {DurationWidget} from 'sentry/views/insights/pages/platform/shared/durationWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {PlatformLandingPageLayout} from 'sentry/views/insights/pages/platform/shared/layout';
-import PagesTable from 'sentry/views/insights/pages/platform/shared/pagesTable';
+import {PagesTable} from 'sentry/views/insights/pages/platform/shared/pagesTable';
 import {PathsTable} from 'sentry/views/insights/pages/platform/shared/pathsTable';
 import {TrafficWidget} from 'sentry/views/insights/pages/platform/shared/trafficWidget';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
