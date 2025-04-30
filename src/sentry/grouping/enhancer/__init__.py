@@ -52,6 +52,11 @@ VALID_PROFILING_MATCHER_PREFIXES = (
 VALID_PROFILING_ACTIONS_SET = frozenset(["+app", "-app"])
 
 
+class EmptyRustFrame:
+    def __new__(cls) -> RustFrame:
+        return RustFrame(contributes=None)
+
+
 def merge_rust_enhancements(
     bases: list[str],
     rust_enhancements: RustEnhancements,
