@@ -102,7 +102,13 @@ export function NextJsOverviewPage({headerTitle}: {headerTitle: React.ReactNode}
         />
       )}
 
-      {activeView === 'pages' && <PagesTable spanOperationFilter={spanOperationFilter} />}
+      {activeView === 'pages' && (
+        <PagesTable
+          spanOperationFilter={spanOperationFilter}
+          handleAddTransactionFilter={setTransactionFilter}
+          query={query}
+        />
+      )}
     </PlatformLandingPageLayout>
   );
 }
