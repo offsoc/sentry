@@ -104,7 +104,7 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
             .first()
         )
         if last_starred_query:
-            return last_starred_query.position
+            return last_starred_query.position  # type: ignore[return-value]
         return 0
 
     def get_starred_query(
