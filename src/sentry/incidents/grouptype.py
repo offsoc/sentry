@@ -24,6 +24,8 @@ COMPARISON_DELTA_CHOICES.append(None)
 @dataclass
 class MetricIssueEvidenceData(EvidenceData):
     alert_id: int
+    # Used for anomaly detection
+    sensitivity: str | None = None
 
 
 class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate]):
