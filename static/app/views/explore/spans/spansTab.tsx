@@ -54,6 +54,7 @@ import {
   SpanTagsProvider,
   useSpanTags,
 } from 'sentry/views/explore/contexts/spanTagsContext';
+import {TraceExploreAiQueryContextProvider} from 'sentry/views/explore/contexts/traceExploreAiQueryContext';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
@@ -397,11 +398,13 @@ export function SpansTabContent(props: SpanTabProps) {
   return (
     <PageParamsProvider>
       <ExploreTagsProvider>
-        {showOnboarding ? (
-          <OnboardingContent {...props} onboardingProject={onboardingProject} />
-        ) : (
-          <SpansTabContentImpl {...props} />
-        )}
+        <TraceExploreAiQueryContextProvider>
+          {showOnboarding ? (
+            <OnboardingContent {...props} onboardingProject={onboardingProject} />
+          ) : (
+            <SpansTabContentImpl {...props} />
+          )}
+        </TraceExploreAiQueryContextProvider>
       </ExploreTagsProvider>
     </PageParamsProvider>
   );
